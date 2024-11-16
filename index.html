@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Data Filters for Truck Dataset</title>
+    <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <style>
-        /* Your existing styles */
-    </style>
+    <script src="script.js" defer></script>
 </head>
 <body>
     <div class="container">
@@ -15,7 +14,50 @@
             <h2>Filtri</h2>
             <label for="fileUpload">Carica il file:</label>
             <input type="file" id="fileUpload" accept=".xlsx">
-            <!-- Filters UI remains unchanged -->
+            <div class="filter-grid">
+                <div>
+                    <label for="causa">Causa:</label>
+                    <select id="causa"></select>
+                </div>
+                <div>
+                    <label for="marca">Marca:</label>
+                    <select id="marca" multiple></select>
+                </div>
+                <div>
+                    <label for="prezzo">Prezzo:</label>
+                    <select id="prezzo"></select>
+                </div>
+                <div>
+                    <label for="condizione">Condizione:</label>
+                    <select id="condizione" multiple></select>
+                </div>
+                <div>
+                    <label for="acquisto">Tipologia Acquisto:</label>
+                    <select id="acquisto" multiple></select>
+                </div>
+                <div>
+                    <label for="statoAttuale">Stato Attuale dei Camion:</label>
+                    <select id="statoAttuale" multiple></select>
+                </div>
+                <div>
+                    <label for="dataFineRivalutazione">Data Fine Rivalutazione:</label>
+                    <input type="date" id="dataFineRivalutazione" value="2024-07-31" onchange="expandTable()">
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <h3>Fatturato</h3>
+                    <div id="fatturato">€0,00</div>
+                    <input type="number" id="sovrapprezzoCartello" placeholder="Sovrapprezzo Percentuale (Periodo Cartello)" value="32.6" onchange="applyFilters()">
+                    <input type="number" id="sovrapprezzoLingering" placeholder="Sovrapprezzo Percentuale (Periodo Lingering)" value="17.6" onchange="applyFilters()">
+                </div>
+                <div class="stat">
+                    <h3>Conteggio dei Camion</h3>
+                    <div id="conteggio">0</div>
+                    <div id="dannoCartello">Danno Sovrapprezzo (Periodo Cartello): €0,00</div>
+                    <div id="dannoLingering">Danno Sovrapprezzo (Periodo Lingering): €0,00</div>
+                </div>
+            </div>
         </div>
         <div class="table-container">
             <table id="dataTable">
@@ -26,11 +68,10 @@
             </table>
             <div class="pagination">
                 <button id="prevPage" disabled>Previous</button>
-                <span>Page <input type="number" id="pageInput" min="1" value="1"> of <span id="totalPages">1</span></span>
+                <span>Page <input type="number" id="pageInput" min="1" value="1" onchange="goToPage()"> of <span id="totalPages">1</span></span>
                 <button id="nextPage" disabled>Next</button>
             </div>
         </div>
     </div>
-    <script src="main.js"></script>
 </body>
 </html>

@@ -1,60 +1,73 @@
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js');
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js');
 
-// Utility Functions
-function processData(workbook) {
-    const sheets = JSON.parse(workbook).SheetNames;
-    const initialData = {};
-    sheets.forEach(sheet => {
-        initialData[sheet] = XLSX.utils.sheet_to_json(JSON.parse(workbook).Sheets[sheet]);
-    });
-    return initialData;
-}
-
-function applyFilters(criteria, data) {
-    return data.filter(row => {
-        return (
-            (!criteria.marca.length || criteria.marca.includes(row.marca)) &&
-            (!criteria.condizione.length || criteria.condizione.includes(row.nuovousato)) &&
-            (!criteria.acquisto.length || criteria.acquisto.includes(row.acquistoleasing)) &&
-            (!criteria.statoAttuale.length || criteria.statoAttuale.includes(row.revendita))
-        );
-    });
-}
-
-function expandData(data, endDate) {
-    const expanded = [];
-    data.forEach(row => {
-        const startDate = moment(row.mese_acquisto, "DD/MM/YYYY");
-        while (startDate.isBefore(endDate)) {
-            const newRow = { ...row, mese: startDate.format("MM/YYYY") };
-            expanded.push(newRow);
-            startDate.add(1, 'month');
-        }
-    });
-    return expanded;
-}
-
-// Worker Message Handling
+// Message handler for the Web Worker
 self.addEventListener('message', (event) => {
     const { type, workbook, criteria, data, endDate } = event.data;
 
-    if (type === 'PROCESS_FILE') {
-        const processedData = processData(workbook);
-        self.postMessage({ type: 'DATA_PROCESSED', payload: { initialData: processedData, filters: getFilters(processedData) } });
-    } else if (type === 'APPLY_FILTERS') {
-        const filtered = applyFilters(criteria, data);
-        self.postMessage({ type: 'FILTERED_DATA', payload: { filteredData: filtered } });
-    } else if (type === 'EXPAND_TABLE') {
-        const expanded = expandData(data, endDate);
-        self.postMessage({ type: 'EXPANDED_DATA', payload: { expandedData: expanded } });
+    switch (type) {
+        case 'PROCESS_FILE':
+            const parsedWorkbook = JSON.parse(workbook);
+            const processedData = processWorkbook(parsedWorkbook);
+            self.postMessage({ type: 'DATA_PROCESSED', payload: processedData });
+            break;
+        case 'APPLY_FILTERS':
+            const filtered = applyFilters(criteria, data);
+            self.postMessage({ type: 'FILTERED_DATA', payload: { filteredData: filtered } });
+            break;
+        case 'EXPAND_TABLE':
+            const expanded = expandData(data, endDate);
+            self.postMessage({ type: 'EXPANDED_DATA', payload: { expandedData: expanded } });
+            break;
+        default:
+            console.error('Unknown message type:', type);
     }
 });
 
-function getFilters(data) {
-    return {
-        marca: [...new Set(data.map(row => row.marca))],
-        condizione: [...new Set(data.map(row => row.nuovousato))],
-        acquisto: [...new Set(data.map(row => row.acquistoleasing))],
-        statoAttuale: [...new Set(data.map(row => row.revendita))],
+// Process workbook data
+function processWorkbook(workbook) {
+    const sheetNames = workbook.SheetNames;
+    const data = workbook.SheetNames.reduce((acc, sheet) => {
+        acc[sheet] = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
+        return acc;
+    }, {});
+
+    const filters = {
+        marca: getUniqueValues(data, 'marca'),
+        condizione: getUniqueValues(data, 'nuovousato'),
+        acquisto: getUniqueValues(data, 'acquistoleasing'),
+        statoAttuale: getUniqueValues(data, 'revendita'),
     };
+
+    return { data, filters };
+}
+
+// Apply filters to the data
+function applyFilters(criteria, data) {
+    return data.filter(row =>
+        (!criteria.marca.length || criteria.marca.includes(row.marca)) &&
+        (!criteria.condizione.length || criteria.condizione.includes(row.nuovousato)) &&
+        (!criteria.acquisto.length || criteria.acquisto.includes(row.acquistoleasing)) &&
+        (!criteria.statoAttuale.length || criteria.statoAttuale.includes(row.revendita))
+    );
+}
+
+// Expand data
+function expandData(data, endDate) {
+    const expanded = [];
+    const endMoment = moment(endDate, 'YYYY-MM-DD');
+
+    data.forEach(row => {
+        const startMoment = moment(row.dataacquisto, 'DD/MM/YYYY');
+        while (startMoment.isBefore(endMoment)) {
+            expanded.push({ ...row, mese: startMoment.format('MM/YYYY') });
+            startMoment.add(1, 'month');
+        }
+    });
+
+    return expanded;
+}
+
+// Get unique values for filters
+function getUniqueValues(data, key) {
+    return [...new Set(data.map(row => row[key]))];
 }

@@ -5,27 +5,7 @@
     <title>Data Filters for Truck Dataset</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <style>
-        /* Dark theme styling */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; width: 100%; font-family: Arial, sans-serif; background-color: #1e1e2e; color: #ffffff; }
-        .container { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
-        .filters { display: flex; flex-direction: column; flex-basis: 40%; padding: 20px; background-color: #2b2b3d; border-right: 1px solid #444; overflow-y: auto; max-width: 600px; }
-        .filters h2 { font-size: 22px; margin-bottom: 15px; color: #9a9abe; }
-        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .filters label { font-weight: bold; margin-top: 10px; display: block; color: #9a9abe; }
-        .filters select, .filters input[type="file"], .filters input[type="date"], .filters input[type="number"] { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #555; border-radius: 4px; background-color: #3c3c51; color: #ffffff; }
-        .stats { display: flex; justify-content: space-between; margin-top: 20px; padding: 10px; background-color: #3c3c51; border-radius: 4px; font-size: 18px; color: #ffffff; }
-        .stats .stat { flex: 1; text-align: center; }
-        .table-container { flex: 2; padding: 20px; overflow: auto; background-color: #1e1e2e; }
-        table { width: 100%; border-collapse: collapse; color: #ffffff; }
-        th, td { padding: 8px; text-align: left; border: 1px solid #444; white-space: nowrap; }
-        th { background-color: #3c3c51; font-weight: bold; color: #9a9abe; }
-        .pagination { display: flex; justify-content: space-between; margin-top: 10px; color: #9a9abe; align-items: center; }
-        .pagination button, .pagination input[type="number"] { background-color: #3c3c51; color: #ffffff; padding: 5px 15px; border: 1.5px solid #555; border-radius: 4px; cursor: pointer; }
-        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .pagination input[type="number"] { width: 100px; text-align: center; }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
@@ -34,6 +14,7 @@
             <label for="fileUpload">Carica il file:</label>
             <input type="file" id="fileUpload" accept=".xlsx">
             <div class="filter-grid">
+                <!-- Filters Section -->
                 <div>
                     <label for="causa">Causa:</label>
                     <select id="causa"></select>
@@ -63,20 +44,6 @@
                     <input type="date" id="dataFineRivalutazione" value="2024-07-31">
                 </div>
             </div>
-            <div class="stats">
-                <div class="stat">
-                    <h3>Fatturato</h3>
-                    <div id="fatturato">€0,00</div>
-                    <input type="number" id="sovrapprezzoCartello" placeholder="Sovrapprezzo Percentuale (Periodo Cartello)" value="32.6">
-                    <input type="number" id="sovrapprezzoLingering" placeholder="Sovrapprezzo Percentuale (Periodo Lingering)" value="17.6">
-                </div>
-                <div class="stat">
-                    <h3>Conteggio dei Camion</h3>
-                    <div id="conteggio">0</div>
-                    <div id="dannoCartello">Danno Sovrapprezzo (Periodo Cartello): €0,00</div>
-                    <div id="dannoLingering">Danno Sovrapprezzo (Periodo Lingering): €0,00</div>
-                </div>
-            </div>
         </div>
         <div class="table-container">
             <table id="dataTable">
@@ -85,11 +52,6 @@
                 </thead>
                 <tbody id="tableBody"></tbody>
             </table>
-            <div class="pagination">
-                <button id="prevPage" disabled>Previous</button>
-                <span>Page <input type="number" id="pageInput" min="1" value="1"> of <span id="totalPages">1</span></span>
-                <button id="nextPage" disabled>Next</button>
-            </div>
         </div>
     </div>
     <script src="main.js"></script>

@@ -197,7 +197,7 @@ function expandTable() {
 
     const endDate = moment(document.getElementById('dataFineRivalutazione').value, "YYYY-MM-DD");
     let expandedData = [];
-    const batchSize = 1000; // Process 1000 rows per batch
+    const batchSize = 2000; // Process 1000 rows per batch
     let currentIndex = 0;
 
     function processBatch() {

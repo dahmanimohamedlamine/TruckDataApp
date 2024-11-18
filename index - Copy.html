@@ -48,8 +48,8 @@
                 <div class="stat">
                     <h3>Fatturato</h3>
                     <div id="fatturato">€0,00</div>
-                    <input type="number" id="sovrapprezzoCartello" placeholder="Sovrapprezzo Percentuale (Periodo Cartello)" value="32.6" onchange="ProcessData()">
-                    <input type="number" id="sovrapprezzoLingering" placeholder="Sovrapprezzo Percentuale (Periodo Lingering)" value="17.6" onchange="ProcessData()">
+                    <input type="number" id="sovrapprezzoCartello" placeholder="Sovrapprezzo Percentuale (Periodo Cartello)" value="32.6" onchange="applyFilters()">
+                    <input type="number" id="sovrapprezzoLingering" placeholder="Sovrapprezzo Percentuale (Periodo Lingering)" value="17.6" onchange="applyFilters()">
                 </div>
                 <div class="stat">
                     <h3>Conteggio dei Camion</h3>
@@ -70,9 +70,6 @@
                 <button id="prevPage" disabled>Previous</button>
                 <span>Page <input type="number" id="pageInput" min="1" value="1" onchange="goToPage()"> of <span id="totalPages">1</span></span>
                 <button id="nextPage" disabled>Next</button>
-            </div>
-            <div class="export-container">
-                <button id="exportButton" onclick="exportTableToExcel()">Export to Excel</button>
             </div>
         </div>
     </div>

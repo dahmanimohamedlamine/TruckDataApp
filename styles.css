@@ -17,3 +17,21 @@ th { background-color: #3c3c51; font-weight: bold; color: #9a9abe; }
 .pagination button, .pagination input[type="number"] { background-color: #3c3c51; color: #ffffff; padding: 5px 15px; border: 1.5px solid #555; border-radius: 4px; cursor: pointer; }
 .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
 .pagination input[type="number"] { width: 100px; text-align: center; }
+.export-container {
+    text-align: center;
+    margin-top: 10px;
+}
+
+#exportButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+}
+
+#exportButton:hover {
+    background-color: #0056b3;
+}

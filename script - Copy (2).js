@@ -99,13 +99,13 @@ function loadSheetData(sheetName) {
         let tegmValue;
 
         // Determine tegm based on Prezzo Netto ranges
-        if (parseFloat(row['prezzo_netto']) <= 5000) {
+        if (parseFloat(row['prezzo_netto']) < 5000) {
             tegmValue = row.tegm0_5000/100;
-        } else if (parseFloat(row['prezzo_netto'])  > 5000 && parseFloat(row['prezzo_netto'])  <= 25000) {
+        } else if (parseFloat(row['prezzo_netto'])  >= 5000 && parseFloat(row['prezzo_netto'])  < 25000) {
             tegmValue = row.tegm5000_25000/100;
-        } else if (parseFloat(row['prezzo_netto']) > 25000 && parseFloat(row['prezzo_netto'])  <= 50000) {
+        } else if (parseFloat(row['prezzo_netto']) >= 25000 && parseFloat(row['prezzo_netto'])  < 50000) {
             tegmValue = row.tegm25000_50000/100;
-        } else if (parseFloat(row['prezzo_netto']) > 50000) {
+        } else if (parseFloat(row['prezzo_netto']) >= 50000) {
             tegmValue = row.tegmoltre_50000/100;
         } else {
             tegmValue = null; // Default to null if no range matches
@@ -134,10 +134,13 @@ function loadSheetData(sheetName) {
 
     isExpanded = false;
     currentData = [...initialData];  // Set currentData to the processed initialData
-    populateFilters(currentData);
+
     // Expand the table and populate filters
     expandTable();
+    populateFilters(currentData);
+    applyFilters();
 }
+
 
 
 
@@ -184,87 +187,29 @@ function populateDropdown(elementId, values, defaultValue = null) {
         select.appendChild(option);
     });
     if (defaultValue) select.value = defaultValue;
-    select.addEventListener('change', filterAndDisplayData);
+    select.addEventListener('change', applyFilters);
 }
 
-function expandTable() {
-    if (isExpanded) {
-        currentData = [...initialData]; // Reset to unexpanded data
-        isExpanded = false;
-        applyFilters(); // Reapply filters on unexpanded data
-        return;
-    }
-
-    const endDate = moment(document.getElementById('dataFineRivalutazione').value, "YYYY-MM-DD");
-    let expandedData = [];
-    const batchSize = 1000; // Process 1000 rows per batch
-    let currentIndex = 0;
-
-    function processBatch() {
-        const batchEndIndex = Math.min(currentIndex + batchSize, currentData.length);
-
-        for (let i = currentIndex; i < batchEndIndex; i++) {
-            const row = currentData[i];
-            const startDate = moment(row.mese_acquisto, "DD/MM/YYYY");
-            const dataFineDate = moment(row.data_fine, "DD/MM/YYYY");
-            let firstMonth = true;
-
-            if (startDate.isValid() && endDate.isValid() && startDate.isBefore(endDate)) {
-                let currentDate = startDate.clone();
-
-                while (currentDate.isSameOrBefore(endDate, 'month')) {
-                    let expandedRow = { ...row };
-                    expandedRow.mese = currentDate.format("MM/YYYY");
-
-                    if (row.acquistoleasing !== "LEASING" && !firstMonth) {
-                        Object.keys(expandedRow).forEach(key => {
-                            if (key.toLowerCase().includes("prezzo") || key.toLowerCase().includes("price")) {
-                                expandedRow[key] = "";
-                            }
-                        });
-                    }
-
-                    if (row.acquistoleasing === "LEASING" && dataFineDate.isValid() && currentDate.isAfter(dataFineDate, 'month')) {
-                        Object.keys(expandedRow).forEach(key => {
-                            if (key.toLowerCase().includes("prezzo") || key.toLowerCase().includes("price") || key.toLowerCase().includes("riscatto")) {
-                                expandedRow[key] = "";
-                            }
-                        });
-                    }
-
-                    expandedData.push(expandedRow);
-                    currentDate.add(1, 'month');
-                    firstMonth = false;
-                }
-            } else {
-                expandedData.push(row);
-            }
-        }
-
-        currentIndex = batchEndIndex;
-
-        if (currentIndex < currentData.length) {
-            setTimeout(processBatch, 0); // Schedule next batch
-        } else {
-            currentData = expandedData; // Update currentData
-            isExpanded = true; // Mark as expanded
-            ProcessData();
-        }
-    }
-
-    processBatch();
-}
-
-
-function ProcessData() {
+function applyFilters() {
+    const selectedMarca = getSelectedValues('marca');
+    const selectedCondizione = getSelectedValues('condizione');
+    const selectedAcquisto = getSelectedValues('acquisto');
+    const selectedStatoAttuale = getSelectedValues('statoAttuale');
     const selectedPrezzo = document.getElementById('prezzo').value;
     const sovrapprezzoCartello = parseFloat(document.getElementById('sovrapprezzoCartello').value) || 0;
     const sovrapprezzoLingering = parseFloat(document.getElementById('sovrapprezzoLingering').value) || 0;
 
+    // Object to store the cumulative "Quota Capitale Iniziale" per vehicle
     const cumulativeQuotaPerVehicle = {};
 
-    // Map and process the filtered data
-    currentData= currentData.map(item => {
+    // Filter and process data
+    filteredData = currentData.filter(item => {
+        return (selectedMarca.length === 0 || selectedMarca.includes(item.marca)) &&
+               (selectedCondizione.length === 0 || selectedCondizione.includes(item.nuovousato)) &&
+               (selectedAcquisto.length === 0 || selectedAcquisto.includes(item.acquistoleasing)) &&
+               (selectedStatoAttuale.length === 0 || selectedStatoAttuale.includes(item.revendita)) &&
+               (selectedPrezzo === '' || item[selectedPrezzo] != null);
+    }).map(item => {
         let row = { ...item };
         row['Prezzo Netto'] = selectedPrezzo && row[selectedPrezzo] ? row[selectedPrezzo] : '';
 
@@ -274,10 +219,10 @@ function ProcessData() {
 
         const startDate = moment(row.mese_acquisto, "DD/MM/YYYY").format("MM/YYYY");
         const currentDate = moment(row.mese, "MM/YYYY");
-        const dataFineDate = moment(row.data_fine, "DD/MM/YYYY");
+        const dataFineDate = moment(row.data_fine, "DD/MM/YYYY"); // Parse data_fine as "DD/MM/YYYY"
         const durationPassed = currentDate.diff(moment(startDate, "MM/YYYY"), 'months');
-        const durataResidua = row.durata ? Math.max(parseInt(row.durata) - durationPassed, 0) : null;
-
+        const durataResidua = row.durata ? Math.max(parseInt(row.durata) - durationPassed,-1) : null;
+        
         if (row['Prezzo Netto']) {
             row['Danno Overcharge'] = (1 - (1 / (1 + (percentage / 100)))) * parseFloat(row['Prezzo Netto']);
         } else {
@@ -290,25 +235,27 @@ function ProcessData() {
             row['Danno Sovrapprezzo'] = '';
         }
 
+        // Add "Durata Residua" to the row object before calculating "Danno Riscatto"
         row['Durata Residua'] = durataResidua;
 
-        if (durataResidua === 0) {
+        // Set "riscatto" to empty if "Durata Residua" is -1
+        if (durataResidua === -1) {
             row['riscatto'] = '';
         }
 
         if (row['riscatto']) {
             row['Danno Riscatto'] = (1 - (1 / (1 + (percentage / 100)))) * parseFloat(row['riscatto']);
         } else {
-            row['Danno Riscatto'] = 0;
+            row['Danno Riscatto'] = '';
         }
 
-        if (row['Danno Overcharge'] && row['TEGM Mensile'] && row['durata']) {
-            const rataCostante = ((parseFloat(row['Danno Overcharge']) - parseFloat(row['Danno Riscatto'])) /
-                (1 - (1 / Math.pow(1 + parseFloat(row['TEGM Mensile']), parseInt(row['durata']))))) *
+        if (row['Danno Overcharge'] && row['Danno Riscatto'] && row['TEGM Mensile'] && row['durata']) {
+            const rataCostante = ((parseFloat(row['Danno Overcharge']) - parseFloat(row['Danno Riscatto'])) / 
+                (1 - (1 / Math.pow(1 + parseFloat(row['TEGM Mensile']), parseInt(row['durata']))))) * 
                 parseFloat(row['TEGM Mensile']);
-
+            
             const rataRiscatto = rataCostante + (parseFloat(row['Danno Riscatto']) * parseFloat(row['TEGM Mensile']));
-
+            
             const quotaCapitaleIniziale = durataResidua !== null && rataCostante
                 ? rataCostante / Math.pow(1 + parseFloat(row['TEGM Mensile']), durataResidua)
                 : '';
@@ -319,28 +266,27 @@ function ProcessData() {
 
             const vehicleKey = `${row.impresa}-${row.targa}-${row.nuovousato}`;
 
+            // Initialize the cumulative sum for the vehicle if not already done
             if (!cumulativeQuotaPerVehicle[vehicleKey]) {
                 cumulativeQuotaPerVehicle[vehicleKey] = 0;
             }
 
+            // Update the cumulative sum with the current month's Quota Capitale Iniziale
             cumulativeQuotaPerVehicle[vehicleKey] += quotaCapitaleIniziale ? parseFloat(quotaCapitaleIniziale) : 0;
 
+            // Calculate Capitale Residuo as Danno Overcharge minus cumulative sum of Quota Capitale Iniziale
             let capitaleResiduo = row['Danno Overcharge'] && quotaCapitaleIniziale
                 ? row['Danno Overcharge'] - cumulativeQuotaPerVehicle[vehicleKey]
                 : '';
-
-            row['Quota Capitale'] = (durataResidua === 1 || currentDate.isSame(dataFineDate, 'month'))
+            // Set "Quota Capitale" based on "durataResidua" or "mese" condition
+            row['Quota Capitale'] = (durataResidua === 0 || currentDate.isSame(dataFineDate, 'month'))
                 ? (quotaCapitaleIniziale ? parseFloat(quotaCapitaleIniziale) : 0) + (capitaleResiduo ? parseFloat(capitaleResiduo) : 0)
                 : quotaCapitaleIniziale;
 
-
+            // Replace "Danno Sovrapprezzo" for leasing trucks
             if (row.acquistoleasing === "LEASING") {
-                row['Danno Sovrapprezzo'] = (row['Quota Capitale'] ? parseFloat(row['Quota Capitale']) : 0) +
+                row['Danno Sovrapprezzo'] = (row['Quota Capitale'] ? parseFloat(row['Quota Capitale']) : 0) + 
                                             (quotaInteressi ? parseFloat(quotaInteressi) : 0);
-            }
-
-            if (row.acquistoleasing === "LEASING" && durataResidua === 0)  {
-                row['Danno Sovrapprezzo'] = '';
             }
 
             return {
@@ -351,9 +297,10 @@ function ProcessData() {
                 'Quota Interessi': quotaInteressi,
                 'Capitale Residuo': capitaleResiduo,
                 'Quota Capitale': row['Quota Capitale'],
+
             };
         }
-
+            
         return {
             ...row,
             'Rata Costante': '',
@@ -364,34 +311,10 @@ function ProcessData() {
             'Quota Capitale': '',
         };
     });
-    filterAndDisplayData();
-}
 
-
-
-function filterAndDisplayData() {
-    const selectedMarca = getSelectedValues('marca');
-    const selectedCondizione = getSelectedValues('condizione');
-    const selectedAcquisto = getSelectedValues('acquisto');
-    const selectedStatoAttuale = getSelectedValues('statoAttuale');
-    const selectedPrezzo = document.getElementById('prezzo').value;
-
-    // Filter the data based on selected criteria
-    filteredData = currentData.filter(item => {
-        return (selectedMarca.length === 0 || selectedMarca.includes(item.marca)) &&
-               (selectedCondizione.length === 0 || selectedCondizione.includes(item.nuovousato)) &&
-               (selectedAcquisto.length === 0 || selectedAcquisto.includes(item.acquistoleasing)) &&
-               (selectedStatoAttuale.length === 0 || selectedStatoAttuale.includes(item.revendita)) &&
-               (selectedPrezzo === '' || item[selectedPrezzo] != null);
-    });
-
-    // Display filtered data
     displayData();
-
-    // Call calculateFatturatoAndConteggio with the selected price
     calculateFatturatoAndConteggio(selectedPrezzo);
 }
-
 
 
 function calculateFatturatoAndConteggio(prezzoColumn) {
@@ -521,38 +444,76 @@ function goToPage() {
     }
 }
 
-function exportTableToExcel() {
-    // Ensure filteredData exists and is not empty
-    if (!filteredData || filteredData.length === 0) {
-        alert('No data to export!');
+function expandTable() {
+    if (isExpanded) {
+        currentData = [...initialData]; // Reset to unexpanded data
+        isExpanded = false;
+        applyFilters(); // Reapply filters on unexpanded data
         return;
     }
 
-    // Step 1: Extract relevant columns
-    const extractedData = filteredData.map(row => ({
-        impresa: row['impresa'],
-        targa: row['targa'],
-        nuovousato: row['nuovousato'],
-        DannoSovrapprezzo: parseFloat(row['Danno Sovrapprezzo']) || 0 // Ensure numeric value
-    }));
+    const endDate = moment(document.getElementById('dataFineRivalutazione').value, "YYYY-MM-DD");
+    let expandedData = [];
+    const batchSize = 1000; // Process 1000 rows per batch
+    let currentIndex = 0;
 
-    // Step 2: Collapse rows by summing 'Danno Sovrapprezzo'
-    const collapsedData = {};
-    extractedData.forEach(row => {
-        const key = `${row.impresa}-${row.targa}-${row.nuovousato}`;
-        if (!collapsedData[key]) {
-            collapsedData[key] = { ...row }; // Initialize group
-        } else {
-            collapsedData[key].DannoSovrapprezzo += row.DannoSovrapprezzo; // Sum the values
+    // Function to process a batch of rows
+    function processBatch() {
+        const batchEndIndex = Math.min(currentIndex + batchSize, currentData.length);
+
+        for (let i = currentIndex; i < batchEndIndex; i++) {
+            const row = currentData[i];
+            const startDate = moment(row.mese_acquisto, "DD/MM/YYYY");
+            const dataFineDate = moment(row.data_fine, "DD/MM/YYYY"); // Parse data_fine as "DD/MM/YYYY"
+            let firstMonth = true;
+
+            if (startDate.isValid() && endDate.isValid() && startDate.isBefore(endDate)) {
+                let currentDate = startDate.clone();
+
+                while (currentDate.isSameOrBefore(endDate, 'month')) {
+                    let expandedRow = { ...row };
+                    expandedRow.mese = currentDate.format("MM/YYYY");
+
+                    // Condition for non-leasing contracts: Clear price after the first month
+                    if (row.acquistoleasing !== "LEASING" && !firstMonth) {
+                        Object.keys(expandedRow).forEach(key => {
+                            if (key.toLowerCase().includes("prezzo") || key.toLowerCase().includes("price")) {
+                                expandedRow[key] = ""; // Clear price for non-leasing contracts after the first month
+                            }
+                        });
+                    }
+
+                    // Condition for leasing contracts: Clear price after data_fine date
+                    if (row.acquistoleasing === "LEASING" && dataFineDate.isValid() && currentDate.isAfter(dataFineDate, 'month')) {
+                        Object.keys(expandedRow).forEach(key => {
+                            if (key.toLowerCase().includes("prezzo") || key.toLowerCase().includes("price") || key.toLowerCase().includes("riscatto")) {
+                                expandedRow[key] = ""; // Clear price for leasing contracts after data_fine
+                            }
+                        });
+                    }
+
+                    expandedData.push(expandedRow);
+                    currentDate.add(1, 'month'); // Move to the next month
+                    firstMonth = false; // Mark that we've processed the first month
+                }
+            } else {
+                expandedData.push(row);
+            }
         }
-    });
 
-    // Convert collapsedData back to an array
-    const outputData = Object.values(collapsedData);
+        currentIndex = batchEndIndex;
 
-    // Step 3: Export to Excel
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(outputData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-    XLSX.writeFile(workbook, 'TruckDataset_Collapsed.xlsx');
+        if (currentIndex < currentData.length) {
+            // Schedule the next batch
+            setTimeout(processBatch, 0); // Process the next batch
+        } else {
+            // All batches processed
+            currentData = expandedData; // Update currentData with expanded data
+            isExpanded = true; // Mark as expanded
+            applyFilters(); // Reapply filters on the expanded data
+        }
+    }
+
+    // Start processing in batches
+    processBatch();
 }

@@ -3,7 +3,7 @@ let initialData = [];  // Store the original unexpanded data
 let currentData = []; 
 let filteredData = []; 
 let currentPage = 1; 
-const rowsPerPage = 20; 
+const rowsPerPage = 15; 
 let isExpanded = false;  // Track if the data has already been expanded
 
 document.getElementById('fileUpload').addEventListener('change', function(event) {

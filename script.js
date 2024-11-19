@@ -53,10 +53,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function loadSheetData(sheetName) {
+    // Display the loading bar
+    const loadingBarContainer = document.getElementById('loadingBarContainer');
+    const loadingLabel = document.getElementById('loadingLabel');
+    const loadingBar = document.getElementById('loadingBar');
+    loadingBarContainer.style.display = 'block';
+    loadingLabel.innerText = "Loading data...";
+    loadingBar.style.width = "0%"; // Initialize progress bar
+
+    let progress = 0; // Initialize progress percentage
+
+    // Function to update progress
+    const updateProgress = (stepProgress, message) => {
+        progress += stepProgress;
+        if (progress > 100) progress = 100; // Cap at 100%
+        loadingBar.style.width = `${progress}%`;
+        loadingLabel.innerText = message;
+    };
+
     let tegmData = []; // Define tegmData outside the if block for wider scope
 
-        // Load and transform the FOI data once
+    // Load and transform the FOI data once
     if (data['FOI']) {
+        updateProgress(10, "Transforming FOI data...");
         console.log("FOI Data Before Transformation:", data['FOI']);
         foiData = data['FOI'].map(row => ({ ...row })); // Copy FOI data
         transformDateColumns(foiData); // Transform date columns
@@ -70,16 +89,16 @@ function loadSheetData(sheetName) {
         console.log("FOI Data After Transformation:", foiData);
     }
 
-  // Load and transform the Tasso Legale data once
+    // Load and transform the Tasso Legale data once
     if (data['Tasso Legale']) {
+        updateProgress(10, "Processing Tasso Legale data...");
         console.log("Tasso Legale Data Before Transformation:", data['Tasso Legale']);
         tassoLegaleData = data['Tasso Legale'].map(row => ({ ...row })); // Copy Tasso Legale data
     }
 
-
     // Check if TEGM sheet is present and load it if so
     if (data['TEGM']) {
-        // Process TEGM sheet data
+        updateProgress(10, "Processing TEGM data...");
         tegmData = data['TEGM'].map(row => ({ ...row })); // Make a copy of TEGM data
 
         // Transform 'qtr' column in TEGM data using transformDateColumns function
@@ -93,8 +112,9 @@ function loadSheetData(sheetName) {
         }));
     }
 
-    let initialData = []; 
+    let initialData = [];
     // Load initial data
+    updateProgress(20, "Loading and transforming initial data...");
     initialData = data[sheetName].map(row => {
         delete row.anno_acquisto; // Remove existing 'anno_acquisto' if it exists
         return {
@@ -117,11 +137,12 @@ function loadSheetData(sheetName) {
     if (tegmData.length === 0) {
         console.warn("TEGM data not loaded. Check if TEGM sheet exists in the file.");
     } else {
+        updateProgress(20, "Matching initial data with TEGM data...");
         // Match `initialData` with `tegmData` based on `quarter_acquisto` and `anno_acquisto`
         initialData = initialData.map(row => {
             // Find matching row in tegmData
-            const match = tegmData.find(tegmRow => 
-                tegmRow.quarter_acquisto === row.quarter_acquisto && 
+            const match = tegmData.find(tegmRow =>
+                tegmRow.quarter_acquisto === row.quarter_acquisto &&
                 tegmRow.anno_acquisto === row.anno_acquisto
             );
 
@@ -129,7 +150,9 @@ function loadSheetData(sheetName) {
             return match ? { ...row, ...match } : row;
         });
     }
+
     // Apply filtering based on 'Periodo Lingering (Anni)'
+    updateProgress(10, "Applying filtering...");
     const periodoLingering = parseInt(document.getElementById('periodoLingering').value, 10);
 
     if (periodoLingering !== 3) {
@@ -150,19 +173,21 @@ function loadSheetData(sheetName) {
 
     // Clear `tegmData` as it is no longer needed
     tegmData = null;
+
+    updateProgress(20, "Calculating TEGM rates...");
     // Define `tegm` based on `Prezzo Netto` ranges
     initialData = initialData.map(row => {
         let tegmValue;
 
         // Determine tegm based on Prezzo Netto ranges
         if (parseFloat(row['prezzo_netto']) <= 5000) {
-            tegmValue = row.tegm0_5000/100;
-        } else if (parseFloat(row['prezzo_netto'])  > 5000 && parseFloat(row['prezzo_netto'])  <= 25000) {
-            tegmValue = row.tegm5000_25000/100;
-        } else if (parseFloat(row['prezzo_netto']) > 25000 && parseFloat(row['prezzo_netto'])  <= 50000) {
-            tegmValue = row.tegm25000_50000/100;
+            tegmValue = row.tegm0_5000 / 100;
+        } else if (parseFloat(row['prezzo_netto']) > 5000 && parseFloat(row['prezzo_netto']) <= 25000) {
+            tegmValue = row.tegm5000_25000 / 100;
+        } else if (parseFloat(row['prezzo_netto']) > 25000 && parseFloat(row['prezzo_netto']) <= 50000) {
+            tegmValue = row.tegm25000_50000 / 100;
         } else if (parseFloat(row['prezzo_netto']) > 50000) {
-            tegmValue = row.tegmoltre_50000/100;
+            tegmValue = row.tegmoltre_50000 / 100;
         } else {
             tegmValue = null; // Default to null if no range matches
         }
@@ -171,7 +196,7 @@ function loadSheetData(sheetName) {
         return { ...row, tegm: tegmValue };
     });
 
-                // Create TEGM Mensile: Monthly TEGM rate
+    // Create TEGM Mensile: Monthly TEGM rate
     initialData = initialData.map(row => ({
         ...row,
         'TEGM Mensile': row.tegm !== null ? (Math.pow(1 + row.tegm, 1 / 12) - 1) : null  // Calculate the monthly TEGM
@@ -181,7 +206,7 @@ function loadSheetData(sheetName) {
     initialData = initialData.map(row => {
         // Remove all columns starting with 'tegm'
         Object.keys(row).forEach(key => {
-            if (key.startsWith('tegm') || key === 'qtr'|| key === 'quarter') {
+            if (key.startsWith('tegm') || key === 'qtr' || key === 'quarter') {
                 delete row[key];
             }
         });
@@ -189,11 +214,22 @@ function loadSheetData(sheetName) {
     });
 
     isExpanded = false;
-    currentData = [...initialData];  // Set currentData to the processed initialData
+    currentData = [...initialData]; // Set currentData to the processed initialData
     populateFilters(currentData);
-    // Expand the table and populate filters
+
+    updateProgress(30, "Processing Data...");
     expandTable();
+
+    // Finalize progress and hide the loading bar
+    setTimeout(() => {
+        loadingBar.style.width = "100%";
+        loadingLabel.innerText = "Danno aggiornato!";
+        setTimeout(() => {
+            loadingBarContainer.style.display = 'none';
+        }, 500); // Small delay to show success message
+    }, 500);
 }
+
 
 
 

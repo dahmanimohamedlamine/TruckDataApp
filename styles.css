@@ -66,3 +66,24 @@ th { background-color: #3c3c51; font-weight: bold; color: #9a9abe; }
     text-align: center; /* Center align the content */
     border-top: 1px solid #ccc; /* Optional: Add a separator */
 }
+#loadingBarContainer {
+    width: 100%;
+    background-color: #f3f3f3;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#loadingBar {
+    width: 0%;
+    height: 10px;
+    background-color: #4caf50;
+    transition: width 0.2s ease;
+}
+#loadingLabel {
+    margin-top: 5px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+}

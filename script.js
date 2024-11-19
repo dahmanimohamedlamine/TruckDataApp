@@ -3,7 +3,7 @@ let initialData = [];  // Store the original unexpanded data
 let currentData = []; 
 let filteredData = []; 
 let currentPage = 1; 
-const rowsPerPage = 30; 
+const rowsPerPage = 20; 
 let isExpanded = false;  // Track if the data has already been expanded
 
 document.getElementById('fileUpload').addEventListener('change', function(event) {
@@ -282,7 +282,7 @@ function populateDropdown(elementId, values, defaultValue = null) {
 function expandTable() {
     const endDate = moment(document.getElementById('dataFineRivalutazione').value, "YYYY-MM-DD");
     let expandedData = [];
-    const batchSize = 1500; // Process 1000 rows per batch
+    const batchSize = 1000; // Process 1000 rows per batch
     let currentIndex = 0;
 
     function processBatch() {

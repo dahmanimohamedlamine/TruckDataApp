@@ -53,45 +53,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function loadSheetData(sheetName) {
-    const loadingBarContainer = document.getElementById('loadingBarContainer');
-    const loadingBar = document.getElementById('loadingBar');
-    const loadingLabel = document.getElementById('loadingLabel');
+    let tegmData = []; // Define tegmData outside the if block for wider scope
 
-    // Show the loading bar and reset progress
-    loadingBarContainer.style.display = 'block';
-    loadingBar.style.width = '0%';
-    loadingLabel.textContent = '0% - Starting...'; // Initial label
-
-    let progress = 0; // Track loading progress
-    const updateProgress = (step, label) => {
-        progress += step;
-        if (progress > 100) progress = 100; // Ensure progress does not exceed 100%
-        loadingBar.style.width = `${progress}%`;
-        loadingLabel.textContent = `${progress}% - ${label}`; // Update the label with the percentage and current step
-    };
-    // Simulate progress updates
-    setTimeout(() => updateProgress(10, 'Processing FOI Data...'), 100); // 10% - Start FOI Data
-
-    let tegmData = [];
-
+        // Load and transform the FOI data once
     if (data['FOI']) {
-        foiData = data['FOI'].map(row => ({ ...row }));
-        transformDateColumns(foiData);
+        console.log("FOI Data Before Transformation:", data['FOI']);
+        foiData = data['FOI'].map(row => ({ ...row })); // Copy FOI data
+        transformDateColumns(foiData); // Transform date columns
+
+        // Normalize 'mese' column in FOI data
         foiData = foiData.map(row => ({
             ...row,
-            mese: row.mese ? moment(row.mese, "DD/MM/YYYY").format("MM/YYYY").trim().toLowerCase() : ''
+            mese: row.mese ? moment(row.mese, "DD/MM/YYYY").format("MM/YYYY").trim().toLowerCase() : '' // Normalize FOI 'mese'
         }));
+
+        console.log("FOI Data After Transformation:", foiData);
     }
 
-    setTimeout(() => updateProgress(30, 'Processing Tasso Legale Data...'), 200); // 30% - Tasso Legale
-
+  // Load and transform the Tasso Legale data once
     if (data['Tasso Legale']) {
-        tassoLegaleData = data['Tasso Legale'].map(row => ({ ...row }));
+        console.log("Tasso Legale Data Before Transformation:", data['Tasso Legale']);
+        tassoLegaleData = data['Tasso Legale'].map(row => ({ ...row })); // Copy Tasso Legale data
     }
 
+
+    // Check if TEGM sheet is present and load it if so
     if (data['TEGM']) {
-        tegmData = data['TEGM'].map(row => ({ ...row }));
+        // Process TEGM sheet data
+        tegmData = data['TEGM'].map(row => ({ ...row })); // Make a copy of TEGM data
+
+        // Transform 'qtr' column in TEGM data using transformDateColumns function
         transformDateColumns(tegmData);
+
+        // Add quarter_acquisto and anno_acquisto based on transformed 'qtr'
         tegmData = tegmData.map(row => ({
             ...row,
             quarter_acquisto: row.qtr ? moment(row.qtr, "DD/MM/YYYY").quarter() : '',
@@ -99,38 +93,43 @@ function loadSheetData(sheetName) {
         }));
     }
 
-    setTimeout(() => updateProgress(50, 'Transforming Initial Data...'), 300); // 50% - Initial Data
-
-    let initialData = [];
+    let initialData = []; 
+    // Load initial data
     initialData = data[sheetName].map(row => {
-        delete row.anno_acquisto;
+        delete row.anno_acquisto; // Remove existing 'anno_acquisto' if it exists
         return {
             ...row,
-            marca: row.marca ? row.marca.toUpperCase() : '',
+            marca: row.marca ? row.marca.toUpperCase() : '', // Transform `marca` to uppercase
             revendita: row.datavendita ? 'VENDUTI' : 'NO'
         };
     });
 
     transformDateColumns(initialData);
 
+    // Add `quarter_acquisto` and `anno_acquisto` in initialData from `dataacquisto`
     initialData = initialData.map(row => ({
         ...row,
         quarter_acquisto: row.dataacquisto ? moment(row.dataacquisto, "DD/MM/YYYY").quarter() : '',
         anno_acquisto: row.dataacquisto ? moment(row.dataacquisto, "DD/MM/YYYY").year() : ''
     }));
 
-    setTimeout(() => updateProgress(70, 'Matching TEGM Data...'), 400); // 70% - Match TEGM Data
-
-    if (tegmData.length > 0) {
+    // Check if tegmData has been loaded properly
+    if (tegmData.length === 0) {
+        console.warn("TEGM data not loaded. Check if TEGM sheet exists in the file.");
+    } else {
+        // Match `initialData` with `tegmData` based on `quarter_acquisto` and `anno_acquisto`
         initialData = initialData.map(row => {
+            // Find matching row in tegmData
             const match = tegmData.find(tegmRow => 
-                tegmRow.quarter_acquisto === row.quarter_acquisto &&
+                tegmRow.quarter_acquisto === row.quarter_acquisto && 
                 tegmRow.anno_acquisto === row.anno_acquisto
             );
+
+            // Merge match data if found
             return match ? { ...row, ...match } : row;
         });
     }
-
+    // Apply filtering based on 'Periodo Lingering (Anni)'
     const periodoLingering = parseInt(document.getElementById('periodoLingering').value, 10);
 
     if (periodoLingering !== 3) {
@@ -139,39 +138,61 @@ function loadSheetData(sheetName) {
             1: "31/12/2011",
             2: "31/12/2012"
         };
+
         const cutoffDate = moment(cutoffDates[periodoLingering], "DD/MM/YYYY");
+
+        // Filter out rows with dataacquisto beyond the cutoff date
         initialData = initialData.filter(row => {
             const dataAcquistoDate = row.dataacquisto ? moment(row.dataacquisto, "DD/MM/YYYY") : null;
             return dataAcquistoDate && dataAcquistoDate.isSameOrBefore(cutoffDate);
         });
     }
 
+    // Clear `tegmData` as it is no longer needed
+    tegmData = null;
+    // Define `tegm` based on `Prezzo Netto` ranges
+    initialData = initialData.map(row => {
+        let tegmValue;
+
+        // Determine tegm based on Prezzo Netto ranges
+        if (parseFloat(row['prezzo_netto']) <= 5000) {
+            tegmValue = row.tegm0_5000/100;
+        } else if (parseFloat(row['prezzo_netto'])  > 5000 && parseFloat(row['prezzo_netto'])  <= 25000) {
+            tegmValue = row.tegm5000_25000/100;
+        } else if (parseFloat(row['prezzo_netto']) > 25000 && parseFloat(row['prezzo_netto'])  <= 50000) {
+            tegmValue = row.tegm25000_50000/100;
+        } else if (parseFloat(row['prezzo_netto']) > 50000) {
+            tegmValue = row.tegmoltre_50000/100;
+        } else {
+            tegmValue = null; // Default to null if no range matches
+        }
+
+        // Add `tegm` column to the row
+        return { ...row, tegm: tegmValue };
+    });
+
+                // Create TEGM Mensile: Monthly TEGM rate
     initialData = initialData.map(row => ({
         ...row,
-        'TEGM Mensile': row.tegm !== null ? (Math.pow(1 + row.tegm, 1 / 12) - 1) : null
+        'TEGM Mensile': row.tegm !== null ? (Math.pow(1 + row.tegm, 1 / 12) - 1) : null  // Calculate the monthly TEGM
     }));
 
+    // Drop the TEGM-related columns (like tegm0_5000, tegm5000_25000, etc.)
     initialData = initialData.map(row => {
+        // Remove all columns starting with 'tegm'
         Object.keys(row).forEach(key => {
-            if (key.startsWith('tegm') || key === 'qtr' || key === 'quarter') {
+            if (key.startsWith('tegm') || key === 'qtr'|| key === 'quarter') {
                 delete row[key];
             }
         });
         return row;
     });
 
-    setTimeout(() => updateProgress(90, 'Finalizing Data...'), 500); // 90% - Finalize Data
-
-    currentData = [...initialData];
+    isExpanded = false;
+    currentData = [...initialData];  // Set currentData to the processed initialData
     populateFilters(currentData);
+    // Expand the table and populate filters
     expandTable();
-
-    setTimeout(() => {
-        updateProgress(100, 'Done!');
-        setTimeout(() => {
-            loadingBarContainer.style.display = 'none'; // Hide the loading bar
-        }, 500);
-    }, 600); // Allow the progress bar to reach 100%
 }
 
 
@@ -688,31 +709,88 @@ function exportTableToExcel() {
         return;
     }
 
-    // Step 1: Extract relevant columns
-    const extractedData = filteredData.map(row => ({
-        impresa: row['impresa'],
-        targa: row['targa'],
-        nuovousato: row['nuovousato'],
-        DannoSovrapprezzo: parseFloat(row['Danno Sovrapprezzo']) || 0 // Ensure numeric value
-    }));
+    // Track grouped data
+    const groupedData = {};
 
-    // Step 2: Collapse rows by summing 'Danno Sovrapprezzo'
-    const collapsedData = {};
-    extractedData.forEach(row => {
-        const key = `${row.impresa}-${row.targa}-${row.nuovousato}`;
-        if (!collapsedData[key]) {
-            collapsedData[key] = { ...row }; // Initialize group
-        } else {
-            collapsedData[key].DannoSovrapprezzo += row.DannoSovrapprezzo; // Sum the values
+    // Iterate through filteredData to group by unique key
+    filteredData.forEach(row => {
+        const uniqueKey = `${row['impresa']}-${row['targa']}-${row['nuovousato']}`;
+
+        // Initialize the group if it doesn't exist
+        if (!groupedData[uniqueKey]) {
+            groupedData[uniqueKey] = [];
         }
+
+        // Add row to the group
+        groupedData[uniqueKey].push({
+            ...row,
+            mese: moment(row['mese'], "MM/YYYY") // Convert mese to a Moment.js object
+        });
     });
 
-    // Convert collapsedData back to an array
-    const outputData = Object.values(collapsedData);
+    // Process each group
+    const outputData = Object.keys(groupedData).map(key => {
+        const rows = groupedData[key];
+
+        // Sort rows by `mese`
+        rows.sort((a, b) => a.mese - b.mese);
+
+        // Sum relevant numeric fields and find max prezzo_netto
+        const summedRow = rows.reduce(
+            (acc, row) => {
+                acc["Danno Sovrapprezzo"] += parseFloat(row['Danno Sovrapprezzo']) || 0;
+                acc["Danno Totale"] += parseFloat(row['Danno Totale']) || 0;
+                acc["Interessi legali"] += parseFloat(row['Interessi legali']) || 0;
+                acc["Interessi legali WACC"] += parseFloat(row['Interessi legali WACC']) || 0;
+                acc.maxPrezzoNetto = Math.max(acc.maxPrezzoNetto, parseFloat(row['prezzo_netto']) || 0);
+                return acc;
+            },
+            {
+                impresa: rows[0]['impresa'] || '',
+                targa: rows[0]['targa'] || '',
+                acquistoleasing: rows[0]['acquistoleasing'] || '',
+                nuovousato: rows[0]['nuovousato'] || '',
+                dataacquisto: rows[0]['dataacquisto'] || '',
+                statoattuale: rows[0]['statoattuale'] || '',
+                "Danno Sovrapprezzo": 0,
+                "Danno Totale": 0,
+                "Interessi legali": 0,
+                "Interessi legali WACC": 0,
+                maxPrezzoNetto: 0
+            }
+        );
+
+        // Get the last row for specific fields
+        const lastRow = rows[rows.length - 1];
+        summedRow.prezzo_netto = summedRow.maxPrezzoNetto; // Use max prezzo_netto
+        summedRow["Danno rivalutato"] = parseFloat(lastRow['Danno rivalutato']) || 0;
+        summedRow["Danno rivalutato WACC"] = parseFloat(lastRow['Danno rivalutato WACC']) || 0;
+
+        // Remove intermediate maxPrezzoNetto
+        delete summedRow.maxPrezzoNetto;
+
+        return {
+            impresa: summedRow.impresa,
+            targa: summedRow.targa,
+            acquistoleasing: summedRow.acquistoleasing,
+            nuovousato: summedRow.nuovousato,
+            dataacquisto: summedRow.dataacquisto,
+            statoattuale: summedRow.statoattuale,
+            prezzo_netto: summedRow.prezzo_netto, // Preceding Danno Sovrapprezzo
+            "Danno Sovrapprezzo": summedRow["Danno Sovrapprezzo"],
+            "Danno Totale": summedRow["Danno Totale"],
+            "Interessi legali": summedRow["Interessi legali"],
+            "Interessi legali WACC": summedRow["Interessi legali WACC"],
+            "Danno rivalutato": summedRow["Danno rivalutato"],
+            "Danno rivalutato WACC": summedRow["Danno rivalutato WACC"]
+        };
+    });
 
     // Step 3: Export to Excel
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(outputData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-    XLSX.writeFile(workbook, 'TruckDataset_Collapsed.xlsx');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dati');
+    XLSX.writeFile(workbook, 'Danno_Camion.xlsx');
 }
+
+

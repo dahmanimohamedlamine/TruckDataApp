@@ -32,6 +32,37 @@ th { background-color: #3c3c51; font-weight: bold; color: #9a9abe; }
     border-radius: 5px;
 }
 
+.input-with-symbol {
+    display: flex; /* Ensure the input and symbol are side-by-side */
+    align-items: center;
+    margin-top: 10px; /* Consistent spacing between inputs */
+}
+
+.input-with-symbol input {
+    flex: 1; /* Allow input to take up available space */
+    padding-right: 30px; /* Add space for the symbol */
+    font-size: 14px; /* Match your existing input font size */
+    background-color: #3c3c51; /* Keep dark theme consistency */
+    color: #ffffff; /* Text color to match dark theme */
+    border: 1px solid #555; /* Match existing input borders */
+    border-radius: 4px; /* Match existing input rounding */
+}
+
+.input-with-symbol span {
+    margin-left: -25px; /* Position the symbol inside the input */
+    font-size: 14px; /* Match the input text size */
+    color: #9a9abe; /* Use the same muted color as labels */
+    pointer-events: none; /* Make the symbol non-clickable */
+}
+
 #exportButton:hover {
     background-color: #0056b3;
+}
+
+#danno-totale {
+    flex: 1 1 100%; /* Ensure it spans the full width */
+    background-color: #f9f9f9; /* Optional: Add a background color */
+    padding: 10px; /* Optional: Add some padding */
+    text-align: center; /* Center align the content */
+    border-top: 1px solid #ccc; /* Optional: Add a separator */
 }

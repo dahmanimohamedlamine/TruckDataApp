@@ -35,12 +35,47 @@ function populateCausaDropdown(sheetNames) {
             causaSelect.appendChild(option);
         });
     causaSelect.addEventListener('change', function() {
+
         loadSheetData(this.value); 
     });
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    // Add event listener to the Periodo Lingering dropdown
+    const periodoLingeringDropdown = document.getElementById('periodoLingering');
+    if (periodoLingeringDropdown) {
+        periodoLingeringDropdown.addEventListener('change', () => {
+            const selectedSheetName = document.getElementById('causa').value || "DefaultSheetName"; // Fallback to default if no sheet is selected
+            loadSheetData(selectedSheetName); // Call loadSheetData dynamically
+        });
+    }
+});
+
+
 function loadSheetData(sheetName) {
     let tegmData = []; // Define tegmData outside the if block for wider scope
+
+        // Load and transform the FOI data once
+    if (data['FOI']) {
+        console.log("FOI Data Before Transformation:", data['FOI']);
+        foiData = data['FOI'].map(row => ({ ...row })); // Copy FOI data
+        transformDateColumns(foiData); // Transform date columns
+
+        // Normalize 'mese' column in FOI data
+        foiData = foiData.map(row => ({
+            ...row,
+            mese: row.mese ? moment(row.mese, "DD/MM/YYYY").format("MM/YYYY").trim().toLowerCase() : '' // Normalize FOI 'mese'
+        }));
+
+        console.log("FOI Data After Transformation:", foiData);
+    }
+
+  // Load and transform the Tasso Legale data once
+    if (data['Tasso Legale']) {
+        console.log("Tasso Legale Data Before Transformation:", data['Tasso Legale']);
+        tassoLegaleData = data['Tasso Legale'].map(row => ({ ...row })); // Copy Tasso Legale data
+    }
+
 
     // Check if TEGM sheet is present and load it if so
     if (data['TEGM']) {
@@ -58,11 +93,13 @@ function loadSheetData(sheetName) {
         }));
     }
 
+    let initialData = []; 
     // Load initial data
     initialData = data[sheetName].map(row => {
         delete row.anno_acquisto; // Remove existing 'anno_acquisto' if it exists
         return {
             ...row,
+            marca: row.marca ? row.marca.toUpperCase() : '', // Transform `marca` to uppercase
             revendita: row.datavendita ? 'VENDUTI' : 'NO'
         };
     });
@@ -92,6 +129,25 @@ function loadSheetData(sheetName) {
             return match ? { ...row, ...match } : row;
         });
     }
+    // Apply filtering based on 'Periodo Lingering (Anni)'
+    const periodoLingering = parseInt(document.getElementById('periodoLingering').value, 10);
+
+    if (periodoLingering !== 3) {
+        const cutoffDates = {
+            0: "18/01/2011",
+            1: "31/12/2011",
+            2: "31/12/2012"
+        };
+
+        const cutoffDate = moment(cutoffDates[periodoLingering], "DD/MM/YYYY");
+
+        // Filter out rows with dataacquisto beyond the cutoff date
+        initialData = initialData.filter(row => {
+            const dataAcquistoDate = row.dataacquisto ? moment(row.dataacquisto, "DD/MM/YYYY") : null;
+            return dataAcquistoDate && dataAcquistoDate.isSameOrBefore(cutoffDate);
+        });
+    }
+
     // Clear `tegmData` as it is no longer needed
     tegmData = null;
     // Define `tegm` based on `Prezzo Netto` ranges
@@ -188,16 +244,9 @@ function populateDropdown(elementId, values, defaultValue = null) {
 }
 
 function expandTable() {
-    if (isExpanded) {
-        currentData = [...initialData]; // Reset to unexpanded data
-        isExpanded = false;
-        applyFilters(); // Reapply filters on unexpanded data
-        return;
-    }
-
     const endDate = moment(document.getElementById('dataFineRivalutazione').value, "YYYY-MM-DD");
     let expandedData = [];
-    const batchSize = 2000; // Process 1000 rows per batch
+    const batchSize = 1000; // Process 1000 rows per batch
     let currentIndex = 0;
 
     function processBatch() {
@@ -256,6 +305,7 @@ function expandTable() {
 }
 
 
+
 function ProcessData() {
     const selectedPrezzo = document.getElementById('prezzo').value;
     const sovrapprezzoCartello = parseFloat(document.getElementById('sovrapprezzoCartello').value) || 0;
@@ -263,8 +313,30 @@ function ProcessData() {
 
     const cumulativeQuotaPerVehicle = {};
 
+        // Match FOI data with currentData
+    currentData = currentData.map(row => {
+        const monthKey = row.mese ? row.mese.trim().toLowerCase() : '';
+        const foiMatch = foiData.find(foiRow => foiRow.mese === monthKey);
+
+        return foiMatch ? { ...row, ...foiMatch } : row; // Merge FOI data
+    });
+
+        // Add `anno` column to currentData
+    currentData = currentData.map(row => ({
+        ...row,
+        anno: row.mese ? moment(row.mese, "MM/YYYY").year() : null // Extract year from `mese`
+    }));
+
+    // Match Tasso Legale data with currentData
+    currentData = currentData.map(row => {
+        const annoKey = row.anno; // Use the `anno` column for matching
+        const tassoLegaleMatch = tassoLegaleData.find(tlRow => tlRow.anno === annoKey);
+
+        return tassoLegaleMatch ? { ...row, ...tassoLegaleMatch } : row; // Merge Tasso Legale data
+    });
+
     // Map and process the filtered data
-    currentData= currentData.map(item => {
+    currentData = currentData.map(item => {
         let row = { ...item };
         row['Prezzo Netto'] = selectedPrezzo && row[selectedPrezzo] ? row[selectedPrezzo] : '';
 
@@ -284,7 +356,7 @@ function ProcessData() {
             row['Danno Overcharge'] = '';
         }
 
-        if (row.acquistoleasing != "LEASING") {
+        if (row.acquistoleasing !== "LEASING") {
             row['Danno Sovrapprezzo'] = (1 - (1 / (1 + (percentage / 100)))) * parseFloat(row['Prezzo Netto']);
         } else {
             row['Danno Sovrapprezzo'] = '';
@@ -333,13 +405,12 @@ function ProcessData() {
                 ? (quotaCapitaleIniziale ? parseFloat(quotaCapitaleIniziale) : 0) + (capitaleResiduo ? parseFloat(capitaleResiduo) : 0)
                 : quotaCapitaleIniziale;
 
-
             if (row.acquistoleasing === "LEASING") {
                 row['Danno Sovrapprezzo'] = (row['Quota Capitale'] ? parseFloat(row['Quota Capitale']) : 0) +
-                                            (quotaInteressi ? parseFloat(quotaInteressi) : 0);
+                    (quotaInteressi ? parseFloat(quotaInteressi) : 0);
             }
 
-            if (row.acquistoleasing === "LEASING" && durataResidua === 0)  {
+            if (row.acquistoleasing === "LEASING" && durataResidua === 0) {
                 row['Danno Sovrapprezzo'] = '';
             }
 
@@ -364,6 +435,68 @@ function ProcessData() {
             'Quota Capitale': '',
         };
     });
+    // Compute Danno Totale for all rows in currentData
+    currentData = currentData.map(row => {
+        // Directly assign Danno Totale to Danno Sovrapprezzo
+        row['Danno Totale'] = row['Danno Sovrapprezzo'] || 0;
+        return row;
+    });
+        // Add Cumulative Sum for Danno Totale
+    const groupedData = {}; // Temporary storage for grouping
+    currentData.forEach(row => {
+        const groupKey = `${row.impresa}-${row.targa}-${row.nuovousato}`;
+        if (!groupedData[groupKey]) groupedData[groupKey] = 0;
+        groupedData[groupKey] += row['Danno Totale'] || 0;
+        row['danno_cumulato'] = groupedData[groupKey];
+    });
+
+    // Add Cumulative Inflation and Danno Rivalutato
+    const inflationData = {}; // Temporary storage for cumulative inflation
+    currentData.forEach(row => {
+        const groupKey = `${row.impresa}-${row.targa}-${row.nuovousato}`;
+        if (!inflationData[groupKey]) inflationData[groupKey] = 1; // Start inflation factor at 1
+
+        // Calculate cumulative inflation
+        inflationData[groupKey] *= row['foi'] ? parseFloat(row['foi']) : 1;
+        row['cumulative_inflation'] = inflationData[groupKey];
+
+        // Calculate Danno Rivalutato
+        row['Danno rivalutato'] = row['danno_cumulato'] * row['cumulative_inflation'];
+    });
+
+
+// Add calculations for `Danno rivalutato`, `Interessi legali`, and WACC-based variables
+    const cumulativeWACC = {}; // To store cumulative sum of `Interessi legali WACC` for each group
+
+    currentData = currentData.map(row => {
+        // Calculate `Interessi legali`
+        const interessiLegali = row['Danno rivalutato'] && row['tassolegale_mens']
+            ? row['Danno rivalutato'] * parseFloat(row['tassolegale_mens'])
+            : 0;
+
+        // Calculate `Interessi legali WACC`
+        const interessiLegaliWACC = row['danno_cumulato'] && row['Wacc (tutti mensile)']
+            ? row['danno_cumulato'] * parseFloat(row['Wacc (tutti mensile)'])
+            : 0;
+
+        // Track cumulative WACC interest by group
+        const groupKey = `${row.impresa}-${row.targa}-${row.nuovousato}`;
+        if (!cumulativeWACC[groupKey]) cumulativeWACC[groupKey] = 0;
+        cumulativeWACC[groupKey] += interessiLegaliWACC;
+
+        // Calculate `Danno rivalutato WACC`
+        const dannoRivalutatoWACC = row['danno_cumulato']
+            ? row['danno_cumulato'] + cumulativeWACC[groupKey]
+            : row['danno_cumulato'];
+
+        return {
+            ...row,
+            'Interessi legali': interessiLegali,
+            'Interessi legali WACC': interessiLegaliWACC,
+            'Danno rivalutato WACC': dannoRivalutatoWACC
+        };
+    });
+    // Reapply filters and update the UI
     filterAndDisplayData();
 }
 
@@ -393,52 +526,100 @@ function filterAndDisplayData() {
 }
 
 
-
 function calculateFatturatoAndConteggio(prezzoColumn) {
-if (!prezzoColumn) {
-document.getElementById('fatturato').textContent = '€0,00';
-document.getElementById('conteggio').textContent = '0';
-document.getElementById('dannoCartello').textContent = '€0,00';
-document.getElementById('dannoLingering').textContent = '€0,00';
-return;
+    if (!prezzoColumn) {
+        document.getElementById('fatturato').textContent = '€0,00';
+        document.getElementById('conteggio').textContent = '0';
+        document.getElementById('dannoCartello').textContent = '€0,00';
+        document.getElementById('dannoLingering').textContent = '€0,00';
+        document.getElementById('dannoTotale').textContent = '€0,00';
+        document.getElementById('interessiLegaliTotale').textContent = '€0,00';
+        document.getElementById('interessiLegaliWACCTotale').textContent = '€0,00';
+        document.getElementById('dannoRivalutatoTotale').textContent = '€0,00';
+        document.getElementById('dannoRivalutatoWACCTotale').textContent = '€0,00';
+        return;
+    }
+
+    let fatturato = 0;
+    let dannoCartelloTotal = 0;
+    let dannoLingeringTotal = 0;
+    let interessiLegaliSum = 0;
+    let interessiLegaliWACCSum = 0;
+    let dannoRivalutatoSum = 0;
+    let dannoRivalutatoWACCSum = 0;
+
+    const uniqueVehicles = new Map(); // To track unique vehicles
+    const groupedLastRows = {}; // To store last rows per group
+    const cartelloDate = moment("18/01/2011", "DD/MM/YYYY");
+
+    // Loop through filteredData
+    filteredData.forEach(row => {
+        const uniqueKey = `${row.impresa}-${row.targa}-${row.nuovousato}`;
+        const mese = moment(row.mese, "MM/YYYY");
+
+        // Update uniqueVehicles and calculate fatturato
+        if (!uniqueVehicles.has(uniqueKey)) {
+            uniqueVehicles.set(uniqueKey, true);
+            const prezzoValue = parseFloat(row[prezzoColumn]) || 0;
+            fatturato += prezzoValue;
+        }
+        // Accumulate `Interessi legali`
+        if ('Interessi legali' in row) {
+            interessiLegaliSum += parseFloat(row['Interessi legali']) || 0;
+        }
+
+        // Accumulate `Interessi legali WACC`
+        if ('Interessi legali WACC' in row) {
+            interessiLegaliWACCSum += parseFloat(row['Interessi legali WACC']) || 0;
+        }
+
+        // Calculate Danno Sovrapprezzo
+        const dannoSovrapprezzo = parseFloat(row['Danno Sovrapprezzo']) || 0;
+
+        // Check date condition once and accumulate totals
+        const dataAcquisto = moment(row.dataacquisto, "DD/MM/YYYY");
+        if (dataAcquisto.isSameOrBefore(cartelloDate, 'day')) {
+            dannoCartelloTotal += dannoSovrapprezzo;
+        } else {
+            dannoLingeringTotal += dannoSovrapprezzo;
+        }
+
+        // Track the last row by group
+        if (!groupedLastRows[uniqueKey] || mese.isAfter(moment(groupedLastRows[uniqueKey].mese, "MM/YYYY"))) {
+            groupedLastRows[uniqueKey] = row;
+        }
+    });
+
+    // Calculate Danno Sovrapprezzo Totale
+    const dannoSovrapprezzoTotale = dannoCartelloTotal + dannoLingeringTotal;
+
+    // Extract last rows and calculate totals for other metrics
+    Object.values(groupedLastRows).forEach(row => {
+        // Calculate Danno Rivalutato
+        if ('Danno rivalutato' in row) {
+            dannoRivalutatoSum += parseFloat(row['Danno rivalutato']) || 0;
+        }
+
+        // Calculate Danno Rivalutato WACC
+        if ('Danno rivalutato WACC' in row) {
+            dannoRivalutatoWACCSum += parseFloat(row['Danno rivalutato WACC']) || 0;
+        }
+
+
+    });
+     // Add Interessi Legali to Danno Rivalutato Totale
+    dannoRivalutatoSum += interessiLegaliSum;
+    // Update DOM with calculated values
+    document.getElementById('fatturato').textContent = `€${fatturato.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('conteggio').textContent = uniqueVehicles.size; // Count unique vehicles
+    document.getElementById('dannoCartello').textContent = `Danno Sovrapprezzo (Periodo Cartello): €${dannoCartelloTotal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoLingering').textContent = `Danno Sovrapprezzo (Periodo Lingering): €${dannoLingeringTotal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoTotale').textContent = `Danno Sovrapprezzo Totale: €${dannoSovrapprezzoTotale.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('interessiLegaliTotale').textContent = `Interessi Legali Totale: €${interessiLegaliSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('interessiLegaliWACCTotale').textContent = `Interessi Legali WACC Totale: €${interessiLegaliWACCSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoRivalutatoTotale').textContent = `Danno Rivalutato Totale: €${dannoRivalutatoSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoRivalutatoWACCTotale').textContent = `Danno Rivalutato WACC Totale: €${dannoRivalutatoWACCSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
 }
-
-let fatturato = 0;
-let dannoCartelloTotal = 0;
-let dannoLingeringTotal = 0;
-const uniqueVehicles = new Map();  // Use Map for faster lookups
-const cartelloDate = moment("18/01/2011", "DD/MM/YYYY");
-
-// Loop through filteredData only once
-filteredData.forEach(row => {
-const uniqueKey = `${row.impresa}-${row.targa}-${row.nuovousato}`;
-
-// Update uniqueVehicles and calculate fatturato
-if (!uniqueVehicles.has(uniqueKey)) {
-    uniqueVehicles.set(uniqueKey, true);
-    const prezzoValue = parseFloat(row[prezzoColumn]) || 0;
-    fatturato += prezzoValue;
-}
-
-// Calculate Danno Sovrapprezzo
-const dannoSovrapprezzo = parseFloat(row['Danno Sovrapprezzo']) || 0;
-
-// Check date condition once and accumulate totals
-const dataAcquisto = moment(row.dataacquisto, "DD/MM/YYYY");
-if (dataAcquisto.isSameOrBefore(cartelloDate, 'day')) {
-    dannoCartelloTotal += dannoSovrapprezzo;
-} else {
-    dannoLingeringTotal += dannoSovrapprezzo;
-}
-});
-
-// Update DOM after all calculations to minimize reflows
-document.getElementById('fatturato').textContent = `€${fatturato.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-document.getElementById('conteggio').textContent = uniqueVehicles.size;  // Count unique vehicles
-document.getElementById('dannoCartello').textContent = `Danno Sovrapprezzo (Periodo Cartello): €${dannoCartelloTotal.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-document.getElementById('dannoLingering').textContent = `Danno Sovrapprezzo (Periodo Lingering): €${dannoLingeringTotal.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 
 
 function getSelectedValues(elementId) {

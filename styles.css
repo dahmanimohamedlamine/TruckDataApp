@@ -32,28 +32,41 @@ th { background-color: #3c3c51; font-weight: bold; color: #9a9abe; }
     border-radius: 5px;
 }
 
+/* Container styling */
 .input-with-symbol {
-    display: flex; /* Ensure the input and symbol are side-by-side */
-    align-items: center;
-    margin-top: 10px; /* Consistent spacing between inputs */
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    max-width: 300px; /* Adjust width as needed */
+    margin-bottom: 10px;
 }
 
 .input-with-symbol input {
-    flex: 1; /* Allow input to take up available space */
-    padding-right: 30px; /* Add space for the symbol */
-    font-size: 14px; /* Match your existing input font size */
-    background-color: #3c3c51; /* Keep dark theme consistency */
-    color: #ffffff; /* Text color to match dark theme */
-    border: 1px solid #555; /* Match existing input borders */
-    border-radius: 4px; /* Match existing input rounding */
+    width: 100%;
+    padding-right: 20px; /* Leave space for the symbol */
+    padding-left: 10px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    -moz-appearance: textfield; /* Remove spinner in Firefox */
 }
 
-.input-with-symbol span {
-    margin-left: -25px; /* Position the symbol inside the input */
-    font-size: 14px; /* Match the input text size */
-    color: #9a9abe; /* Use the same muted color as labels */
-    pointer-events: none; /* Make the symbol non-clickable */
+/* Remove spinner controls in Chrome and Edge */
+.input-with-symbol input::-webkit-outer-spin-button,
+.input-with-symbol input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
+
+.input-with-symbol .symbol {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    color: #555; /* Adjust as needed */
+    pointer-events: none; /* Prevent interaction with the symbol */
+}
+
 
 #exportButton:hover {
     background-color: #0056b3;

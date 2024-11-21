@@ -1,102 +1,312 @@
-/* Dark theme styling */
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; width: 100%; font-family: Arial, sans-serif; background-color: #1e1e2e; color: #ffffff; }
-.container { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
-.filters { display: flex; flex-direction: column; flex-basis: 40%; padding: 20px; background-color: #2b2b3d; border-right: 1px solid #444; overflow-y: auto; max-width: 600px; }
-.filters h2 { font-size: 22px; margin-bottom: 15px; color: #9a9abe; }
-.filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.filters label { font-weight: bold; margin-top: 10px; display: block; color: #9a9abe; }
-.filters select, .filters input[type="file"], .filters input[type="date"], .filters input[type="number"] { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #555; border-radius: 4px; background-color: #3c3c51; color: #ffffff; }
-.stats { display: flex; justify-content: space-between; margin-top: 20px; padding: 10px; background-color: #3c3c51; border-radius: 4px; font-size: 18px; color: #ffffff; }
-.stats .stat { flex: 1; text-align: center; }
-.table-container { flex: 2; padding: 20px; overflow: auto; background-color: #1e1e2e; }
-table { width: 100%; border-collapse: collapse; color: #ffffff; }
-th, td { padding: 8px; text-align: left; border: 1px solid #444; white-space: nowrap; }
-th { background-color: #3c3c51; font-weight: bold; color: #9a9abe; }
-.pagination { display: flex; justify-content: space-between; margin-top: 10px; color: #9a9abe; align-items: center; }
-.pagination button, .pagination input[type="number"] { background-color: #3c3c51; color: #ffffff; padding: 5px 15px; border: 1.5px solid #555; border-radius: 4px; cursor: pointer; }
-.pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
-.pagination input[type="number"] { width: 100px; text-align: center; }
-.export-container {
-    text-align: center;
-    margin-top: 10px;
-}
-
-#exportButton {
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    background-color: #007BFF;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-}
-
-/* Container styling */
-.input-with-symbol {
-    position: relative;
-    display: inline-block;
-    width: 100%;
-    max-width: 300px; /* Adjust width as needed */
-    margin-bottom: 10px;
-}
-
-.input-with-symbol input {
-    width: 100%;
-    padding-right: 20px; /* Leave space for the symbol */
-    padding-left: 10px;
-    font-size: 1rem;
-    box-sizing: border-box;
-    -moz-appearance: textfield; /* Remove spinner in Firefox */
-}
-
-/* Remove spinner controls in Chrome and Edge */
-.input-with-symbol input::-webkit-outer-spin-button,
-.input-with-symbol input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
     margin: 0;
+    padding: 0;
+    line-height: 1.6; /* Improves readability */
+    font-size: 16px; /* Sets a base font size for better readability */
 }
 
-.input-with-symbol .symbol {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1rem;
-    color: #555; /* Adjust as needed */
-    pointer-events: none; /* Prevent interaction with the symbol */
-}
-
-
-#exportButton:hover {
-    background-color: #0056b3;
-}
-
-#danno-totale {
-    flex: 1 1 100%; /* Ensure it spans the full width */
-    background-color: #f9f9f9; /* Optional: Add a background color */
-    padding: 10px; /* Optional: Add some padding */
-    text-align: center; /* Center align the content */
-    border-top: 1px solid #ccc; /* Optional: Add a separator */
-}
-#loadingBarContainer {
-    width: 100%;
-    background-color: #f3f3f3;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+.container {
+    display: grid;
+    grid-template-columns: 3fr 5fr; /* Sidebar and main content */
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
 }
 
-#loadingBar {
-    width: 0%;
-    height: 10px;
-    background-color: #4caf50;
-    transition: width 0.2s ease;
+/* Responsive Layout */
+@media (max-width: 500px) {
+    .container {
+        grid-template-columns: 1fr; /* Stack the sidebar and main content */
+    }
 }
-#loadingLabel {
-    margin-top: 5px;
-    text-align: center;
-    font-size: 14px;
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Always 2 equal-width columns */
+    gap: 15px; /* Spacing between items */
+    margin-top: 20px;
+    grid-auto-rows: minmax(50px, auto); /* Consistent row height */
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column; /* Stack label and input/select vertically */
+    justify-content: start; /* Align items at the top */
+    align-items: stretch; /* Stretch to match container width */
+    width: 100%; /* Ensure uniform width for all filter groups */
+    box-sizing: border-box; /* Include padding/borders in width */
+}
+
+.filter-group input, .filter-group select {
+    width: 100%; /* Inputs and selects take full width */
+    box-sizing: border-box; /* Padding and border included in width */
+}
+
+.input-with-symbol {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Space between input and symbol */
+    width: 100%; /* Ensure it fits within the parent container */
+}
+
+/* Sidebar (Filters) */
+.filters {
+    grid-column: 1;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: #1e1e1e;
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid #444;
+}
+
+.filters h2 {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    color: #ffa500;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Always occupy two columns */
+    gap: 15px;
+    margin-top: 20px;
+    grid-auto-rows: minmax(50px, auto); /* Ensure consistent row heights */
+}
+
+.filter-group {
     font-weight: bold;
-    color: #333;
+    margin-bottom: 5px;
+    color: #ffa500;
 }
+
+/* For the filters that need to take two rows */
+.filter-group.condizione,
+.filter-group.acquisto,
+.filter-group.statoAttuale {
+    grid-row: span 2;  /* Spans two rows */
+}
+
+
+.filter-group-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px; /* Adjust spacing between the two elements */
+    margin-top: 10px;
+}
+
+.filter-group {
+    flex: 1; /* This ensures the filter group takes up equal space */
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%; /* Ensures input/select elements expand to fill their container */
+}
+
+.filter-grid label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #ffa500;
+}
+
+/* Styling for input, select, and button elements */
+input, select, button {
+    background-color: #292929;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 10px;
+    width: 100%;
+    transition: all 0.2s ease-in-out;
+}
+
+input:focus, select:focus, button:focus {
+    outline: none;
+    border-color: #ffa500
+    box-shadow: 0 0 4px #ffa500;
+}
+
+/* Stats Section */
+.stats {
+    display: block; /* Stack stats vertically */
+    gap: 15px; /* Space between each stat box */
+    margin: 20px 0;
+}
+
+/* Each stat box (results) */
+.stat {
+    background: #292929; /* Dark background for the stat box */
+    padding: 10px; /* Padding inside the box */
+    border-radius: 8px; /* Rounded corners for the box */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Slight shadow to lift the box */
+    border: 2px solid #444; /* Border around the stat box */
+    margin-bottom: 20px; /* Space between each stat box */
+    transition: transform 0.2s ease-in-out; /* Hover effect for interaction */
+}
+
+.stat:hover {
+    transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+.stat h3 {
+    color: #ffa500; /* Title color */
+    margin-bottom: 5px; /* Space between the header and the content */
+    margin-top: 0; /* Removes unnecessary top margin */
+    font-size: 1rem;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between; /* Space out label and value */
+    margin-bottom: 5px; /* Space between each stat item */
+    font-size: 0.8rem;
+}
+
+.stat-label {
+    font-weight: bold;
+    color: #ffffff; /* Label color */
+    font-size: 0.8rem;
+    justify-content: center;
+}
+
+/* The result value box */
+.stat-value-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #444; /* Background color for the result box */
+    color: #ffa500; /* Color for the result text */
+    padding: 10px 20px; /* Padding inside the result box */
+    border-radius: 4px; /* Rounded corners for the result box */
+    font-size: 0.8rem;
+    font-weight: bold;
+    min-width: 100px; /* Minimum width for the box */
+}
+
+
+/* Optional: Add hover effect to emphasize when the user interacts */
+.stat:hover {
+    background-color: #333;
+    transform: scale(1.02);
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+
+/* Table Section */
+.table-container {
+    grid-column: 2;
+    overflow-y: auto;
+    background-color: #1e1e1e;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #444;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+thead tr {
+    background: #ffa500;
+    color: #121212;
+}
+
+th, td {
+    padding: 12px;
+    border: 1px solid #444;
+    text-align: left;
+}
+
+tbody tr:nth-child(even) {
+    background: #292929;
+}
+
+tbody tr:nth-child(odd) {
+    background: #1e1e1e;
+}
+
+tbody tr:hover {
+    background: #333; /* Highlight on hover */
+}
+.pagination { display: flex; justify-content: space-between; margin-top: 10px; color: #9a9abe; align-items: center; }
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.pagination button {
+    background: #ffa500;
+    color: #121212;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.pagination button:hover {
+    background: #66bb6a;
+}
+
+.pagination button:disabled {
+    background: #444;
+    cursor: not-allowed;
+    color: #666;
+}
+
+/* Export Button */
+.export-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.export-container button {
+    background: #ffa500;
+    color: #121212;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.export-container button:hover {
+    background: #66bb6a;
+}
+
+#loadingBarContainer {
+    margin-top: 10px;
+}
+
+#loadingLabel {
+    color: #ffa500;
+}
+
+/* Input Enhancements */
+.input-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+
+.input-with-symbol .symbol {
+    color: #ffa500;
+    font-weight: bold;
+}
+
+

@@ -3,7 +3,7 @@ let initialData = [];  // Store the original unexpanded data
 let currentData = []; 
 let filteredData = []; 
 let currentPage = 1; 
-const rowsPerPage = 8; 
+const rowsPerPage = 20; 
 let isExpanded = false;  // Track if the data has already been expanded
 
 document.getElementById('fileUpload').addEventListener('change', function(event) {
@@ -650,13 +650,13 @@ function calculateFatturatoAndConteggio(prezzoColumn) {
     // Update DOM with calculated values
     document.getElementById('fatturato').textContent = `€${fatturato.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
     document.getElementById('conteggio').textContent = uniqueVehicles.size; // Count unique vehicles
-    document.getElementById('dannoCartello').textContent = `€${dannoCartelloTotal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
-    document.getElementById('dannoLingering').textContent = `€${dannoLingeringTotal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
-    document.getElementById('dannoTotale').textContent = `€${dannoSovrapprezzoTotale.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
-    document.getElementById('interessiLegaliTotale').textContent = `€${interessiLegaliSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
-    document.getElementById('interessiLegaliWACCTotale').textContent = `€${interessiLegaliWACCSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
-    document.getElementById('dannoRivalutatoTotale').textContent = `€${dannoRivalutatoSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
-    document.getElementById('dannoRivalutatoWACCTotale').textContent = `€${dannoRivalutatoWACCSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoCartello').textContent = `Danno Sovrapprezzo (Periodo Cartello): €${dannoCartelloTotal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoLingering').textContent = `Danno Sovrapprezzo (Periodo Lingering): €${dannoLingeringTotal.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoTotale').textContent = `Danno Sovrapprezzo Totale: €${dannoSovrapprezzoTotale.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('interessiLegaliTotale').textContent = `Interessi Legali Totale: €${interessiLegaliSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('interessiLegaliWACCTotale').textContent = `Interessi Legali WACC Totale: €${interessiLegaliWACCSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoRivalutatoTotale').textContent = `Danno Rivalutato Totale: €${dannoRivalutatoSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
+    document.getElementById('dannoRivalutatoWACCTotale').textContent = `Danno Rivalutato WACC Totale: €${dannoRivalutatoWACCSum.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`;
 }
 
 

@@ -35,20 +35,20 @@
                 </div>
                 <div class="filter-group">
                     <label for="acquisto">Tipologia Acquisto:</label>
-                    <select id="acquisto" size=3></select>
+                    <select id="acquisto" multiple size=3></select>
                 </div>
                 <div class="filter-group">
                     <label for="condizione">Condizione:</label>
-                    <select id="condizione" size=2></select>
+                    <select id="condizione" multiple size=2></select>
                 </div>
                 <div class="filter-group">
                     <label for="statoAttuale">Stato Attuale dei Camion:</label>
-                    <select id="statoAttuale" size=2></select>
+                    <select id="statoAttuale" multiple size=2></select>
                 </div>
 
                 <div class="filter-group">
                     <label for="dataFineRivalutazione">Data Fine Rivalutazione:</label>
-                    <input type="date" id="dataFineRivalutazione" value="2024-07-31" onchange="expandTable()">
+                    <input type="date" id="dataFineRivalutazione" value="2025-02-28" onchange="expandTable()">
                 </div>
 
                 <div class="filter-group">
@@ -63,7 +63,7 @@
                 <div class="filter-group">
                     <label for="sovrapprezzoCartello">Periodo Cartello:</label>
                     <div class="input-with-symbol">
-                        <input type="number" id="sovrapprezzoCartello" placeholder="8" value="8" onchange="ProcessData()">
+                        <input type="number" id="sovrapprezzoCartello" placeholder="33.4" value="33.4" onchange="ProcessData()">
                         <span class="symbol">%</span>
                     </div>
                 </div>
@@ -71,7 +71,7 @@
                 <div class="filter-group">
                     <label for="sovrapprezzoLingering">Periodo Lingering:</label>
                     <div class="input-with-symbol">
-                        <input type="number" id="sovrapprezzoLingering" placeholder="4" value="4" onchange="ProcessData()">
+                        <input type="number" id="sovrapprezzoLingering" placeholder="18.1" value="18.1" onchange="ProcessData()">
                         <span class="symbol">%</span>
                     </div>
                 </div>

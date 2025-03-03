@@ -777,7 +777,6 @@ function exportTableToExcel() {
         const summedRow = rows.reduce(
             (acc, row) => {
                 acc["Danno Sovrapprezzo"] += parseFloat(row['Danno Sovrapprezzo']) || 0;
-                acc["Quota Interessi"] += parseFloat(row['Quota Interessi']) || 0;
                 acc["Danno Totale"] += parseFloat(row['Danno Totale']) || 0;
                 acc["Interessi legali"] += parseFloat(row['Interessi legali']) || 0;
                 acc["Interessi legali WACC"] += parseFloat(row['Interessi legali WACC']) || 0;
@@ -792,7 +791,6 @@ function exportTableToExcel() {
                 dataacquisto: rows[0]['dataacquisto'] || '',
                 statoattuale: rows[0]['statoattuale'] || '',
                 "Danno Sovrapprezzo": 0,
-                "Quota Interessi": 0,
                 "Danno Totale": 0,
                 "Interessi legali": 0,
                 "Interessi legali WACC": 0,
@@ -818,7 +816,6 @@ function exportTableToExcel() {
             statoattuale: summedRow.statoattuale,
             prezzo_netto: summedRow.prezzo_netto, // Preceding Danno Sovrapprezzo
             "Danno Sovrapprezzo": summedRow["Danno Sovrapprezzo"],
-            "Quota Interessi": summedRow["Quota Interessi"],
             "Danno Totale": summedRow["Danno Totale"],
             "Interessi legali": summedRow["Interessi legali"],
             "Interessi legali WACC": summedRow["Interessi legali WACC"],

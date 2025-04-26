@@ -11,10 +11,10 @@ body {
 
 .container {
     display: grid;
-    grid-template-columns: 3fr 5fr; /* Sidebar and main content */
+    grid-template-columns: 3fr 5fr;
     width: 100vw;
     height: 100vh;
-    overflow: hidden;
+    overflow-y: hidden; /* only vertical hidden */
 }
 
 /* Responsive Layout */
@@ -201,19 +201,41 @@ input:focus, select:focus, button:focus {
 /* Table Section */
 .table-container {
     grid-column: 2;
+    overflow-x: auto; /* you can use auto instead of scroll if you want it clean when no scroll needed */
     overflow-y: auto;
-    background-color: #1e1e1e;
+    background-color: #1e1e1e; /* ✅ Keep dark background for table area */
     padding: 10px;
-    display: flex;
-    flex-direction: column;
+    display: block;
     border-left: 1px solid #444;
+    max-width: 100%;
+    height: calc(100vh - 100px);
+    position: relative; /* ✅ ADD this to make scroll track visible */
 }
 
+/* Table itself */
 table {
-    width: 100%;
+    min-width: 1200px;
+    width: auto;
+    table-layout: auto;
     border-collapse: collapse;
     margin-top: 20px;
 }
+
+/* Horizontal scrollbar under the table */
+.table-container::-webkit-scrollbar {
+    height: 8px;
+    background: transparent; /* <=== ✅ Fix: set transparent here */
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #ffffff; /* ✅ This shows the white track! */
+}
+
 
 thead tr {
     background: #ffa500;
@@ -224,6 +246,7 @@ th, td {
     padding: 12px;
     border: 1px solid #444;
     text-align: left;
+    white-space: nowrap;
 }
 
 tbody tr:nth-child(even) {
@@ -233,6 +256,8 @@ tbody tr:nth-child(even) {
 tbody tr:nth-child(odd) {
     background: #1e1e1e;
 }
+
+
 
 tbody tr:hover {
     background: #333; /* Highlight on hover */
@@ -310,3 +335,21 @@ tbody tr:hover {
 }
 
 
+td.euro {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-search {
+    margin-bottom: 10px;
+    text-align: right;
+}
+
+#tableSearchInput {
+    background-color: #292929;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 8px 12px;
+    width: 300px;
+}

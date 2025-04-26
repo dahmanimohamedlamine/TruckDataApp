@@ -3,7 +3,7 @@ let initialData = [];  // Store the original unexpanded data
 let currentData = []; 
 let filteredData = []; 
 let currentPage = 1; 
-const rowsPerPage = 8; 
+const rowsPerPage = 10; 
 let isExpanded = false;  // Track if the data has already been expanded
 
 document.getElementById('fileUpload').addEventListener('change', function(event) {
@@ -665,49 +665,164 @@ function getSelectedValues(elementId) {
     return Array.from(select.selectedOptions).map(option => option.value);
 }
 
+function getGroupedExportTableData() {
+    const groupedData = {};
+
+    filteredData.forEach(row => {
+        const uniqueKey = `${row['impresa']}-${row['targa']}-${row['nuovousato']}`;
+        if (!groupedData[uniqueKey]) groupedData[uniqueKey] = [];
+
+        groupedData[uniqueKey].push({
+            ...row,
+            mese: moment(row['mese'], "MM/YYYY")
+        });
+    });
+
+    return Object.keys(groupedData).map(key => {
+        const rows = groupedData[key];
+        rows.sort((a, b) => a.mese - b.mese);
+
+        const summedRow = rows.reduce((acc, row) => {
+            acc["Danno Sovrapprezzo"] += parseFloat(row['Danno Sovrapprezzo']) || 0;
+            acc["Danno Totale"] += parseFloat(row['Danno Totale']) || 0;
+            acc["Interessi legali"] += parseFloat(row['Interessi legali']) || 0;
+            acc["Interessi legali WACC"] += parseFloat(row['Interessi legali WACC']) || 0;
+            acc.maxPrezzoNetto = Math.max(acc.maxPrezzoNetto, parseFloat(row['prezzo_netto']) || 0);
+            return acc;
+        }, {
+            impresa: rows[0]['impresa'] || '',
+            targa: rows[0]['targa'] || '',
+            acquistoleasing: rows[0]['acquistoleasing'] || '',
+            nuovousato: rows[0]['nuovousato'] || '',
+            dataacquisto: rows[0]['dataacquisto'] || '',
+            statoattuale: rows[0]['statoattuale'] || '',
+            "Danno Sovrapprezzo": 0,
+            "Danno Totale": 0,
+            "Interessi legali": 0,
+            "Interessi legali WACC": 0,
+            maxPrezzoNetto: 0
+        });
+
+        const lastRow = rows[rows.length - 1];
+        summedRow.prezzo_netto = summedRow.maxPrezzoNetto;
+        summedRow["Danno rivalutato"] = parseFloat(lastRow['Danno rivalutato']) || 0;
+        summedRow["Danno rivalutato WACC"] = parseFloat(lastRow['Danno rivalutato WACC']) || 0;
+        delete summedRow.maxPrezzoNetto;
+
+        return {
+            impresa: summedRow.impresa,
+            targa: summedRow.targa,
+            acquistoleasing: summedRow.acquistoleasing,
+            nuovousato: summedRow.nuovousato,
+            dataacquisto: summedRow.dataacquisto,
+            statoattuale: summedRow.statoattuale,
+            prezzo_netto: summedRow.prezzo_netto,
+            "Danno Sovrapprezzo": summedRow["Danno Sovrapprezzo"],
+            "Danno Totale": summedRow["Danno Totale"],
+            "Interessi legali": summedRow["Interessi legali"],
+            "Interessi legali WACC": summedRow["Interessi legali WACC"],
+            "Danno rivalutato": summedRow["Danno rivalutato"],
+            "Danno rivalutato WACC": summedRow["Danno rivalutato WACC"]
+        };
+    });
+}
+
+const COLUMN_LABELS = {
+    impresa: "Impresa",
+    targa: "Targa",
+    acquistoleasing: "Tipo Acquisto",
+    nuovousato: "Condizione",
+    dataacquisto: "Data Acquisto",
+    statoattuale: "Stato Attuale",
+    prezzo_netto: "Prezzo Netto (€)",
+    "Danno Sovrapprezzo": "Danno Sovrapprezzo (€)",
+    "Danno Totale": "Danno Totale (€)",
+    "Interessi legali": "Interessi Legali (€)",
+    "Interessi legali WACC": "Interessi Legali WACC (€)",
+    "Danno rivalutato": "Danno Rivalutato (€)",
+    "Danno rivalutato WACC": "Danno Rivalutato WACC (€)"
+};
+
+const EURO_COLUMNS = [
+    'prezzo_netto',
+    'Danno Sovrapprezzo',
+    'Danno Totale',
+    'Interessi legali',
+    'Interessi legali WACC',
+    'Danno rivalutato',
+    'Danno rivalutato WACC'
+];
+
 function displayData() {
     const tableHeader = document.getElementById('tableHeader');
     const tableBody = document.getElementById('tableBody');
     tableHeader.innerHTML = '';
     tableBody.innerHTML = '';
 
-    if (filteredData.length === 0) return;
+    const groupedExportData = getGroupedExportTableData();
+    const searchValue = document.getElementById('tableSearchInput')?.value?.toLowerCase() || '';
 
-    // Build table headers
-    Object.keys(filteredData[0]).forEach(key => {
+    if (groupedExportData.length === 0) return;
+
+    const headers = Object.keys(groupedExportData[0]);
+
+    // Filter rows using search value
+    const filteredTableData = groupedExportData.filter(row => {
+        return Object.values(row).some(val =>
+            String(val).toLowerCase().includes(searchValue)
+        );
+    });
+
+    // Render column headers with friendly labels
+    headers.forEach(key => {
         const th = document.createElement('th');
-        th.textContent = key;
+        th.textContent = COLUMN_LABELS[key] || key;
         tableHeader.appendChild(th);
     });
 
-    // Calculate total pages and update pagination
-    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    const totalPages = Math.ceil(filteredTableData.length / rowsPerPage);
     document.getElementById('totalPages').textContent = totalPages;
     document.getElementById('pageInput').value = currentPage;
 
     document.getElementById('prevPage').disabled = currentPage === 1;
     document.getElementById('nextPage').disabled = currentPage === totalPages;
 
-    // Get the current page data
     const startIdx = (currentPage - 1) * rowsPerPage;
     const endIdx = startIdx + rowsPerPage;
-    const pageData = filteredData.slice(startIdx, endIdx);
+    const pageData = filteredTableData.slice(startIdx, endIdx);
 
-    // Use DocumentFragment for efficient DOM manipulation
     const fragment = document.createDocumentFragment();
+
+    // Render table rows
     pageData.forEach(row => {
         const tr = document.createElement('tr');
-        Object.values(row).forEach(value => {
+
+        headers.forEach(key => {
             const td = document.createElement('td');
-            td.textContent = value;
+            let value = row[key];
+
+            if (EURO_COLUMNS.includes(key) && typeof value === 'number') {
+                value = `€ ${value.toLocaleString('it-IT', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}`;
+                td.classList.add('euro'); // Optional: apply right alignment
+            }
+
+            td.textContent = value !== undefined ? value : '';
             tr.appendChild(td);
         });
+
         fragment.appendChild(tr);
     });
 
-    // Append all rows at once
     tableBody.appendChild(fragment);
 }
+
+document.getElementById('tableSearchInput')?.addEventListener('input', () => {
+    currentPage = 1;
+    displayData();
+});
 
 
 document.getElementById('prevPage').addEventListener('click', () => {

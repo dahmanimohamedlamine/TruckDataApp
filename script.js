@@ -1037,7 +1037,7 @@ summaryWorksheet['!cols'] = [
   { wch: 20 }  // Valore
 ];
 
-XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Danno complessivo', true);
+XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Riepilogo generale del danno', true);
 
 
 const COLUMN_LABELS = {

@@ -258,8 +258,6 @@ function populateFilters(data) {
     populateDropdown('condizione', getUniqueValues(data, 'nuovousato'));
     populateDropdown('acquisto', getUniqueValues(data, 'acquistoleasing'));
     populateDropdown('statoAttuale', getUniqueValues(data, 'revendita'));
-    const prezzoColumns = Object.keys(data[0]).filter(col => col.toLowerCase().includes('price') || col.toLowerCase().includes('prezzo'));
-    populateDropdown('prezzo', prezzoColumns, 'prezzo_netto');
 }
 
 function getUniqueValues(data, key) {
@@ -347,7 +345,7 @@ function expandTable() {
 
 
 function ProcessData() {
-    const selectedPrezzo = document.getElementById('prezzo').value;
+    const selectedPrezzo = 'prezzo_netto';
     const sovrapprezzoCartello = parseFloat(document.getElementById('sovrapprezzoCartello').value) || 0;
     const sovrapprezzoLingering = parseFloat(document.getElementById('sovrapprezzoLingering').value) || 0;
 
@@ -378,7 +376,7 @@ function ProcessData() {
     // Map and process the filtered data
     currentData = currentData.map(item => {
         let row = { ...item };
-        row['Prezzo Netto'] = selectedPrezzo && row[selectedPrezzo] ? row[selectedPrezzo] : '';
+        row['Prezzo Netto'] = row['prezzo_netto'] || '';
 
         const dataAcquisto = moment(row.dataacquisto, "DD/MM/YYYY");
         const cartelloDate = moment("18/01/2011", "DD/MM/YYYY");
@@ -547,7 +545,7 @@ function filterAndDisplayData() {
     const selectedCondizione = getSelectedValues('condizione');
     const selectedAcquisto = getSelectedValues('acquisto');
     const selectedStatoAttuale = getSelectedValues('statoAttuale');
-    const selectedPrezzo = document.getElementById('prezzo').value;
+    const selectedPrezzo = 'prezzo_netto';
 
     // Filter the data based on selected criteria
     filteredData = currentData.filter(item => {
@@ -555,7 +553,7 @@ function filterAndDisplayData() {
                (selectedCondizione.length === 0 || selectedCondizione.includes(item.nuovousato)) &&
                (selectedAcquisto.length === 0 || selectedAcquisto.includes(item.acquistoleasing)) &&
                (selectedStatoAttuale.length === 0 || selectedStatoAttuale.includes(item.revendita)) &&
-               (selectedPrezzo === '' || item[selectedPrezzo] != null);
+               (item[selectedPrezzo] != null);
     });
 
     // Display filtered data
@@ -567,19 +565,7 @@ function filterAndDisplayData() {
 
 
 function calculateFatturatoAndConteggio(prezzoColumn) {
-    if (!prezzoColumn) {
-        document.getElementById('fatturato').textContent = '€0,00';
-        document.getElementById('conteggio').textContent = '0';
-        document.getElementById('dannoCartello').textContent = '€0,00';
-        document.getElementById('dannoLingering').textContent = '€0,00';
-        document.getElementById('dannoTotale').textContent = '€0,00';
-        document.getElementById('interessiLegaliTotale').textContent = '€0,00';
-        document.getElementById('interessiLegaliWACCTotale').textContent = '€0,00';
-        document.getElementById('dannoRivalutatoTotale').textContent = '€0,00';
-        document.getElementById('dannoRivalutatoWACCTotale').textContent = '€0,00';
-        return;
-    }
-
+    const prezzoColumn = 'prezzo_netto';
     let fatturato = 0;
     let dannoCartelloTotal = 0;
     let dannoLingeringTotal = 0;

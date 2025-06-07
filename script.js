@@ -560,11 +560,11 @@ function filterAndDisplayData() {
     displayData();
 
     // Call calculateFatturatoAndConteggio with the selected price
-    calculateFatturatoAndConteggio(selectedPrezzo);
+    calculateFatturatoAndConteggio();
 }
 
 
-function calculateFatturatoAndConteggio(prezzoColumn) {
+function calculateFatturatoAndConteggio() {
     const prezzoColumn = 'prezzo_netto';
     let fatturato = 0;
     let dannoCartelloTotal = 0;

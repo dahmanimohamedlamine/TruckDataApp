@@ -41,15 +41,24 @@ function populateCausaDropdown(sheetNames) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Add event listener to the Periodo Lingering dropdown
     const periodoLingeringDropdown = document.getElementById('periodoLingering');
+    const filterDateInput = document.getElementById('filterDate');
+
     if (periodoLingeringDropdown) {
         periodoLingeringDropdown.addEventListener('change', () => {
-            const selectedSheetName = document.getElementById('causa').value || "DefaultSheetName"; // Fallback to default if no sheet is selected
-            loadSheetData(selectedSheetName); // Call loadSheetData dynamically
+            const selectedSheetName = document.getElementById('causa').value || "DefaultSheetName";
+            loadSheetData(selectedSheetName);
+        });
+    }
+
+    if (filterDateInput) {
+        filterDateInput.addEventListener('change', () => {
+            const selectedSheetName = document.getElementById('causa').value || "DefaultSheetName";
+            loadSheetData(selectedSheetName);
         });
     }
 });
+
 
 
 function loadSheetData(sheetName) {
@@ -151,18 +160,37 @@ function loadSheetData(sheetName) {
 
     // Apply filtering based on 'Periodo Lingering (Anni)'
     updateProgress(10, "Applying filtering...");
-    const periodoLingering = parseInt(document.getElementById('periodoLingering').value, 10);
-
+    const periodoLingering = parseFloat(document.getElementById('periodoLingering').value);
     if (periodoLingering !== 3) {
-        const cutoffDates = {
-            0: "18/01/2011",
-            0.5: "30/06/2011",
-            1: "31/12/2011",
-            1.5: "30/06/2012",
-            2: "31/12/2012",
-            2.5: "30/06/2013"
-        };
-        const cutoffDate = moment(cutoffDates[periodoLingering], "DD/MM/YYYY");
+        const cartelloInput = document.getElementById('filterDate');
+        const cartelloBaseDate = cartelloInput && cartelloInput.value
+            ? moment(cartelloInput.value, "YYYY-MM-DD")
+            : moment("18/01/2011", "DD/MM/YYYY");
+
+        let cutoffDate;
+
+        switch (periodoLingering) {
+            case 0:
+                cutoffDate = cartelloBaseDate.clone();
+                break;
+            case 0.5:
+                cutoffDate = cartelloBaseDate.clone().add(6, 'months').endOf('month');
+                break;
+            case 1:
+                cutoffDate = cartelloBaseDate.clone().add(1, 'years').endOf('year');
+                break;
+            case 1.5:
+                cutoffDate = cartelloBaseDate.clone().add(1, 'years').add(6, 'months').endOf('month');
+                break;
+            case 2:
+                cutoffDate = cartelloBaseDate.clone().add(2, 'years').endOf('year');
+                break;
+            case 2.5:
+                cutoffDate = cartelloBaseDate.clone().add(2, 'years').add(6, 'months').endOf('month');
+                break;
+            default:
+                cutoffDate = cartelloBaseDate.clone();
+        }
 
         // Filter out rows with dataacquisto beyond the cutoff date
         initialData = initialData.filter(row => {
@@ -379,7 +407,11 @@ function ProcessData() {
         row['Prezzo Netto'] = row['prezzo_netto'] || '';
 
         const dataAcquisto = moment(row.dataacquisto, "DD/MM/YYYY");
-        const cartelloDate = moment("18/01/2011", "DD/MM/YYYY");
+        const cartelloInput = document.getElementById('filterDate');
+        const cartelloDate = cartelloInput && cartelloInput.value
+            ? moment(cartelloInput.value, "YYYY-MM-DD")
+            : moment("18/01/2011", "DD/MM/YYYY");
+
         const percentage = dataAcquisto.isValid() && dataAcquisto.isSameOrBefore(cartelloDate, 'day') ? sovrapprezzoCartello : sovrapprezzoLingering;
 
         const startDate = moment(row.mese_acquisto, "DD/MM/YYYY").format("MM/YYYY");
@@ -576,7 +608,11 @@ function calculateFatturatoAndConteggio() {
 
     const uniqueVehicles = new Map(); // To track unique vehicles
     const groupedLastRows = {}; // To store last rows per group
-    const cartelloDate = moment("18/01/2011", "DD/MM/YYYY");
+    const cartelloInput = document.getElementById('filterDate');
+    const cartelloDate = cartelloInput && cartelloInput.value
+    ? moment(cartelloInput.value, "YYYY-MM-DD")
+    : moment("18/01/2011", "DD/MM/YYYY");
+
 
     // Loop through filteredData
     filteredData.forEach(row => {

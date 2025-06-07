@@ -963,11 +963,174 @@ function exportTableToExcel() {
         };
     });
 
-    // Step 3: Export to Excel
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(outputData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dati');
-    XLSX.writeFile(workbook, 'Danno_Camion.xlsx');
+// Step 3: Export to Excel
+const workbook = XLSX.utils.book_new();
+
+const parseEuro = str => parseFloat(str.replace(/[^\d,-]/g, '').replace(',', '.'));
+const parseNumber = str => parseFloat(str.replace(',', '.'));
+
+const metaInfo = [
+  { Categoria: "Impostazioni", Indicatore: "Causa", Valore: document.getElementById('causa')?.value || '' },
+  { Categoria: "Impostazioni", Indicatore: "Fine del Cartello", Valore: document.getElementById('filterDate')?.value || '' },
+  { Categoria: "Impostazioni", Indicatore: "Periodo Lingering (Mesi)", Valore: parseNumber(document.getElementById('periodoLingering')?.value || '0') * 12 },
+  { Categoria: "Impostazioni", Indicatore: "Sovrapprezzo Periodo Cartello (%)", Valore: parseNumber(document.getElementById('sovrapprezzoCartello')?.value || '0') },
+  { Categoria: "Impostazioni", Indicatore: "Sovrapprezzo Periodo Lingering (%)", Valore: parseNumber(document.getElementById('sovrapprezzoLingering')?.value || '0') },
+];
+
+const summarySheetData = [
+  ...metaInfo,
+  { Categoria: "Panoramica Generale", Indicatore: "Conteggio dei Camion", Valore: parseInt(document.getElementById('conteggio').textContent) },
+  { Categoria: "Panoramica Generale", Indicatore: "Totale Acquisti (Fatturato)", Valore: parseEuro(document.getElementById('fatturato').textContent) },
+  { Categoria: "Informazioni Danno", Indicatore: "Danno Sovrapprezzo (Periodo Cartello)", Valore: parseEuro(document.getElementById('dannoCartello').textContent) },
+  { Categoria: "Informazioni Danno", Indicatore: "Danno Sovrapprezzo (Periodo Lingering)", Valore: parseEuro(document.getElementById('dannoLingering').textContent) },
+  { Categoria: "Informazioni Danno", Indicatore: "Danno Sovrapprezzo Totale", Valore: parseEuro(document.getElementById('dannoTotale').textContent) },
+  { Categoria: "Interessi e Rivalutazione", Indicatore: "Interessi Legali Totale", Valore: parseEuro(document.getElementById('interessiLegaliTotale').textContent) },
+  { Categoria: "Interessi e Rivalutazione", Indicatore: "Danno Rivalutato Totale", Valore: parseEuro(document.getElementById('dannoRivalutatoTotale').textContent) },
+    { Categoria: "Interessi e Rivalutazione", Indicatore: "Interessi Legali WACC Totale", Valore: parseEuro(document.getElementById('interessiLegaliWACCTotale').textContent) },
+  { Categoria: "Interessi e Rivalutazione", Indicatore: "Danno Rivalutato WACC Totale", Valore: parseEuro(document.getElementById('dannoRivalutatoWACCTotale').textContent) }
+];
+
+const summaryWorksheet = XLSX.utils.json_to_sheet(summarySheetData);
+
+// 🎨 Format numbers: euros or general numbers
+// Add styling for Causa and Fine del Cartello rows
+const styleCenter = { alignment: { horizontal: "center" } };
+
+Object.keys(summaryWorksheet).forEach(cell => {
+  if (cell.startsWith('C') && cell !== 'C1') {
+    const rowIndex = parseInt(cell.slice(1), 10);
+    const cellValue = summaryWorksheet[cell].v;
+
+    if (rowIndex === 2) {
+      // Causa
+      summaryWorksheet[cell].t = 's';
+      summaryWorksheet[cell].s = styleCenter;
+    } else if (rowIndex === 3) {
+      // Fine del Cartello as formatted date
+      summaryWorksheet[cell].t = 'd';
+      summaryWorksheet[cell].v = new Date(cellValue);
+      summaryWorksheet[cell].z = 'dd/mm/yyyy';
+      summaryWorksheet[cell].s = styleCenter;
+    } else if (rowIndex === 4) {
+      summaryWorksheet[cell].t = 'n';
+      summaryWorksheet[cell].z = '0';
+    } else if (rowIndex === 5 || rowIndex === 6) {
+      // Sovrapprezzo fields as percentages
+      summaryWorksheet[cell].t = 'n';
+      summaryWorksheet[cell].z = '0.00%';
+      summaryWorksheet[cell].v = parseFloat(cellValue) / 100;  // Convert 33.4 to 0.334
+     } else if (rowIndex === 7) {
+      summaryWorksheet[cell].t = 'n';
+      summaryWorksheet[cell].z = '0';  
+    } else {
+      summaryWorksheet[cell].t = 'n';
+      summaryWorksheet[cell].z = '€#,##0.00';
+    }
+  }
+});
+
+
+// 📏 Set column widths
+summaryWorksheet['!cols'] = [
+  { wch: 28 }, // Categoria
+  { wch: 48 }, // Indicatore
+  { wch: 20 }  // Valore
+];
+
+XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Danno complessivo', true);
+
+
+const COLUMN_LABELS = {
+    impresa: "Impresa",
+    targa: "Targa",
+    acquistoleasing: "Tipo Acquisto",
+    nuovousato: "Condizione",
+    dataacquisto: "Data Acquisto",
+    statoattuale: "Stato Attuale",
+    prezzo_netto: "Prezzo Netto (€)",
+    "Danno Sovrapprezzo": "Danno Sovrapprezzo (€)",
+    "Danno Totale": "Danno Totale (€)",
+    "Interessi legali": "Interessi Legali (€)",
+    "Interessi legali WACC": "Interessi Legali WACC (€)",
+    "Danno rivalutato": "Danno Rivalutato (€)",
+    "Danno rivalutato WACC": "Danno Rivalutato WACC (€)"
+};
+
+const renamedOutputData = outputData.map(row => {
+    const newRow = {};
+    for (const key in row) {
+        if (COLUMN_LABELS[key]) {
+            newRow[COLUMN_LABELS[key]] = row[key];
+        }
+    }
+    return newRow;
+});
+
+renamedOutputData.sort((a, b) => {
+  const impresaCompare = a['Impresa'].localeCompare(b['Impresa']);
+  if (impresaCompare !== 0) return impresaCompare;
+
+  const dateA = moment(a['Data Acquisto'], "DD/MM/YYYY");
+  const dateB = moment(b['Data Acquisto'], "DD/MM/YYYY");
+  return dateA - dateB;
+});
+
+// ➕ 2. Danno per targa sheet
+const worksheet = XLSX.utils.json_to_sheet(renamedOutputData);
+
+/// 🎯 Format Euro columns with Italian labels
+const euroCols = [
+  "Prezzo Netto (€)",
+  "Danno Sovrapprezzo (€)",
+  "Danno Totale (€)",
+  "Interessi Legali (€)",
+  "Interessi Legali WACC (€)",
+  "Danno Rivalutato (€)",
+  "Danno Rivalutato WACC (€)"
+];
+
+const header = Object.keys(renamedOutputData[0] || {});
+header.forEach((col, idx) => {
+  const colLetter = XLSX.utils.encode_col(idx);
+  if (euroCols.includes(col)) {
+    for (let i = 0; i < renamedOutputData.length; i++) {
+      const cellRef = `${colLetter}${i + 2}`;
+      if (worksheet[cellRef]) {
+        worksheet[cellRef].t = 'n';
+        worksheet[cellRef].z = '€#,##0.00';
+      }
+    }
+  }
+});
+
+// 📐 Set column widths
+worksheet['!cols'] = header.map(col => {
+  if (euroCols.includes(col)) return { wch: 22 };
+  if (col === 'Impresa') return { wch: 40 };
+  if (col === 'Stato Attuale') return { wch: 25 };
+  return { wch: 14 };
+});
+
+XLSX.utils.book_append_sheet(workbook, worksheet, 'Danno per targa');
+
+// 💾 Save the file
+const causaValue = document.getElementById('causa')?.value?.replace(/\s+/g, '_') || 'Export';
+const today = new Date();
+
+// Format date as DD-MM-YYYY
+const exportDate = today.toLocaleDateString('it-IT').replace(/\//g, '-');
+
+// Get hours and minutes with leading zeros
+const hours = today.getHours().toString().padStart(2, '0');
+const minutes = today.getMinutes().toString().padStart(2, '0');
+const exportTime = `${hours}H${minutes}`;
+
+// Create full filename
+const filename = `Danno_Camion_${causaValue}_${exportDate}_${exportTime}.xlsx`;
+
+// Save the file
+XLSX.writeFile(workbook, filename);
+
 }
 
 

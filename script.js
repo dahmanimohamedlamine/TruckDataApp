@@ -156,10 +156,12 @@ function loadSheetData(sheetName) {
     if (periodoLingering !== 3) {
         const cutoffDates = {
             0: "18/01/2011",
+            0.5: "30/06/2011",
             1: "31/12/2011",
-            2: "31/12/2012"
+            1.5: "30/06/2012",
+            2: "31/12/2012",
+            2.5: "30/06/2013"
         };
-
         const cutoffDate = moment(cutoffDates[periodoLingering], "DD/MM/YYYY");
 
         // Filter out rows with dataacquisto beyond the cutoff date

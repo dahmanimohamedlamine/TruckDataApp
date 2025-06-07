@@ -972,6 +972,7 @@ const parseNumber = str => parseFloat(str.replace(',', '.'));
 const metaInfo = [
   { Categoria: "Impostazioni", Indicatore: "Causa", Valore: document.getElementById('causa')?.value || '' },
   { Categoria: "Impostazioni", Indicatore: "Fine del Cartello", Valore: document.getElementById('filterDate')?.value || '' },
+    { Categoria: "Impostazioni", Indicatore: "Data Fine Rivalutazione", Valore: document.getElementById('dataFineRivalutazione')?.value || '' },
   { Categoria: "Impostazioni", Indicatore: "Periodo Lingering (Mesi)", Valore: parseNumber(document.getElementById('periodoLingering')?.value || '0') * 12 },
   { Categoria: "Impostazioni", Indicatore: "Sovrapprezzo Periodo Cartello (%)", Valore: parseNumber(document.getElementById('sovrapprezzoCartello')?.value || '0') },
   { Categoria: "Impostazioni", Indicatore: "Sovrapprezzo Periodo Lingering (%)", Valore: parseNumber(document.getElementById('sovrapprezzoLingering')?.value || '0') },
@@ -1012,14 +1013,21 @@ Object.keys(summaryWorksheet).forEach(cell => {
       summaryWorksheet[cell].z = 'dd/mm/yyyy';
       summaryWorksheet[cell].s = styleCenter;
     } else if (rowIndex === 4) {
+      // Fine del Cartello as formatted date
+      summaryWorksheet[cell].t = 'd';
+      summaryWorksheet[cell].v = new Date(cellValue);
+      summaryWorksheet[cell].z = 'dd/mm/yyyy';
+      summaryWorksheet[cell].s = styleCenter;
+
+    } else if (rowIndex === 5) {
       summaryWorksheet[cell].t = 'n';
       summaryWorksheet[cell].z = '0';
-    } else if (rowIndex === 5 || rowIndex === 6) {
+    } else if (rowIndex === 6 || rowIndex === 7) {
       // Sovrapprezzo fields as percentages
       summaryWorksheet[cell].t = 'n';
       summaryWorksheet[cell].z = '0.00%';
       summaryWorksheet[cell].v = parseFloat(cellValue) / 100;  // Convert 33.4 to 0.334
-     } else if (rowIndex === 7) {
+     } else if (rowIndex === 8) {
       summaryWorksheet[cell].t = 'n';
       summaryWorksheet[cell].z = '0';  
     } else {

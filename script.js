@@ -952,7 +952,16 @@ const metaInfo = [
   { Categoria: "Impostazioni", Indicatore: "Causa", Valore: document.getElementById('causa')?.value || '' },
   { Categoria: "Impostazioni", Indicatore: "Fine del Cartello", Valore: document.getElementById('filterDate')?.value || '' },
     { Categoria: "Impostazioni", Indicatore: "Data Fine Rivalutazione", Valore: document.getElementById('dataFineRivalutazione')?.value || '' },
-  { Categoria: "Impostazioni", Indicatore: "Periodo Lingering (Mesi)", Valore: parseNumber(document.getElementById('periodoLingering')?.value || '0') * 12 },
+    {
+      Categoria: "Impostazioni",
+      Indicatore: "Periodo Lingering (Mesi)",
+      Valore: (() => {
+        const cutoff = moment(document.getElementById('filterDateling')?.value, "YYYY-MM-DD");
+        const endCartello = moment(document.getElementById('filterDate')?.value, "YYYY-MM-DD");
+        return (cutoff.isValid() && endCartello.isValid()) ? cutoff.diff(endCartello, 'months', true).toFixed(1) : '';
+      })()
+    },
+
   { Categoria: "Impostazioni", Indicatore: "Sovrapprezzo Periodo Cartello (%)", Valore: parseNumber(document.getElementById('sovrapprezzoCartello')?.value || '0') },
   { Categoria: "Impostazioni", Indicatore: "Sovrapprezzo Periodo Lingering (%)", Valore: parseNumber(document.getElementById('sovrapprezzoLingering')?.value || '0') },
 ];
@@ -1050,17 +1059,19 @@ const renamedOutputData = outputData.map(row => {
             newRow[COLUMN_LABELS[key]] = row[key];
         }
     }
+
+    // Now safely add the new calculated columns using original keys
+    const rivalutato = parseFloat(row["Danno rivalutato"] || 0);
+    const interessi = parseFloat(row["Interessi legali"] || 0);
+    const rivalutatoWACC = parseFloat(row["Danno rivalutato WACC"] || 0);
+    const interessiWACC = parseFloat(row["Interessi legali WACC"] || 0);
+
+    newRow["Danno Rivalutato e Interessi Legali (€)"] = rivalutato + interessi;
+    newRow["Danno Rivalutato WACC e Interessi Legali WACC (€)"] = rivalutatoWACC + interessiWACC;
+
     return newRow;
 });
 
-renamedOutputData.sort((a, b) => {
-  const impresaCompare = a['Impresa'].localeCompare(b['Impresa']);
-  if (impresaCompare !== 0) return impresaCompare;
-
-  const dateA = moment(a['Data Acquisto'], "DD/MM/YYYY");
-  const dateB = moment(b['Data Acquisto'], "DD/MM/YYYY");
-  return dateA - dateB;
-});
 
 // ➕ 2. Danno per targa sheet
 const worksheet = XLSX.utils.json_to_sheet(renamedOutputData);
@@ -1073,7 +1084,9 @@ const euroCols = [
   "Interessi Legali (€)",
   "Interessi Legali WACC (€)",
   "Danno Rivalutato (€)",
-  "Danno Rivalutato WACC (€)"
+  "Danno Rivalutato WACC (€)",
+  "Danno Rivalutato e Interessi Legali (€)",
+  "Danno Rivalutato WACC e Interessi Legali WACC (€)"
 ];
 
 const header = Object.keys(renamedOutputData[0] || {});

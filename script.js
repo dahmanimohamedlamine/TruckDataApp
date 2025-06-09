@@ -41,18 +41,18 @@ function populateCausaDropdown(sheetNames) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const periodoLingeringDropdown = document.getElementById('periodoLingering');
     const filterDateInput = document.getElementById('filterDate');
+    const filterDateLingInput = document.getElementById('filterDateling');
 
-    if (periodoLingeringDropdown) {
-        periodoLingeringDropdown.addEventListener('change', () => {
+   if (filterDateInput) {
+        filterDateInput.addEventListener('change', () => {
             const selectedSheetName = document.getElementById('causa').value || "DefaultSheetName";
             loadSheetData(selectedSheetName);
         });
     }
 
-    if (filterDateInput) {
-        filterDateInput.addEventListener('change', () => {
+    if (filterDateLingInput) {
+        filterDateLingInput.addEventListener('change', () => {
             const selectedSheetName = document.getElementById('causa').value || "DefaultSheetName";
             loadSheetData(selectedSheetName);
         });
@@ -158,46 +158,25 @@ function loadSheetData(sheetName) {
         });
     }
 
-    // Apply filtering based on 'Periodo Lingering (Anni)'
-    updateProgress(10, "Applying filtering...");
-    const periodoLingering = parseFloat(document.getElementById('periodoLingering').value);
-    if (periodoLingering !== 3) {
-        const cartelloInput = document.getElementById('filterDate');
-        const cartelloBaseDate = cartelloInput && cartelloInput.value
-            ? moment(cartelloInput.value, "YYYY-MM-DD")
-            : moment("18/01/2011", "DD/MM/YYYY");
+        updateProgress(10, "Applying filtering...");
 
-        let cutoffDate;
+        const filterDatelingInput = document.getElementById('filterDateling');
+        const fallbackDate = "2011-01-18"; // YYYY-MM-DD
 
-        switch (periodoLingering) {
-            case 0:
-                cutoffDate = cartelloBaseDate.clone();
-                break;
-            case 0.5:
-                cutoffDate = cartelloBaseDate.clone().add(6, 'months').endOf('month');
-                break;
-            case 1:
-                cutoffDate = cartelloBaseDate.clone().add(1, 'years').endOf('year');
-                break;
-            case 1.5:
-                cutoffDate = cartelloBaseDate.clone().add(1, 'years').add(6, 'months').endOf('month');
-                break;
-            case 2:
-                cutoffDate = cartelloBaseDate.clone().add(2, 'years').endOf('year');
-                break;
-            case 2.5:
-                cutoffDate = cartelloBaseDate.clone().add(2, 'years').add(6, 'months').endOf('month');
-                break;
-            default:
-                cutoffDate = cartelloBaseDate.clone();
+        let cutoffDate = moment(fallbackDate, "YYYY-MM-DD");
+
+        if (filterDatelingInput && filterDatelingInput.value) {
+            const parsedDate = moment(filterDatelingInput.value, "YYYY-MM-DD");
+            if (parsedDate.isValid()) {
+                cutoffDate = parsedDate;
+            }
         }
 
-        // Filter out rows with dataacquisto beyond the cutoff date
         initialData = initialData.filter(row => {
             const dataAcquistoDate = row.dataacquisto ? moment(row.dataacquisto, "DD/MM/YYYY") : null;
             return dataAcquistoDate && dataAcquistoDate.isSameOrBefore(cutoffDate);
         });
-    }
+
 
     // Clear `tegmData` as it is no longer needed
     tegmData = null;
@@ -1140,5 +1119,3 @@ const filename = `Danno_Camion_${causaValue}_${exportDate}_${exportTime}.xlsx`;
 XLSX.writeFile(workbook, filename);
 
 }
-
-

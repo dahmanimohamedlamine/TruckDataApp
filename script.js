@@ -904,6 +904,7 @@ function exportTableToExcel() {
             {
                 impresa: rows[0]['impresa'] || '',
                 targa: rows[0]['targa'] || '',
+                marca: rows[0]['marca'] || '', // ✅ Add this line
                 acquistoleasing: rows[0]['acquistoleasing'] || '',
                 nuovousato: rows[0]['nuovousato'] || '',
                 dataacquisto: rows[0]['dataacquisto'] || '',
@@ -928,6 +929,7 @@ function exportTableToExcel() {
         return {
             impresa: summedRow.impresa,
             targa: summedRow.targa,
+            marca: summedRow.marca,
             acquistoleasing: summedRow.acquistoleasing,
             nuovousato: summedRow.nuovousato,
             dataacquisto: summedRow.dataacquisto,
@@ -1039,6 +1041,7 @@ XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Riepilogo generale del
 const COLUMN_LABELS = {
     impresa: "Impresa",
     targa: "Targa",
+    marca: "Marca", // ✅ Add this line
     acquistoleasing: "Tipo Acquisto",
     nuovousato: "Condizione",
     dataacquisto: "Data Acquisto",
